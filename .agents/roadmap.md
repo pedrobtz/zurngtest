@@ -308,7 +308,14 @@ build; `devtools::load_all()` builds at -O0 and is about three times slower).
   repeating pattern, R's Mersenne-Twister as bytes, and 32-bit counter words,
   at 64 KiB to 1 MiB. Every test name, evaluation and p-value (to the digits
   `RNG_test` prints, which it sometimes truncates) agrees at every length,
-  so the six patches change none of these results.
+  so the six patches change none of these results. Added 2026-10-24 after
+  the Stage 7 review
+  ([#45](https://github.com/pedrobtz/zurngtest/issues/45)): the counter
+  words with 32-bit folding (`RNG_test stdin32` against `pract_fun()`), and
+  32 MiB of Mersenne-Twister bytes, past the driver's 16 MiB chunk; all 30
+  lengths agree. The script now fails when `RNG_test` exits non-zero or
+  either tool misses a length, and the workflow checks that with two broken
+  stand-ins for `RNG_test` on every run.
 - **Known results**, each length the one `RNG_test` reports for the same
   stream: a full-output 32-bit LCG (Numerical Recipes) fails at 4 KiB;
   xorshift32 (13, 17, 5) fails at 16 KiB. hc256 passes to 256 MiB,

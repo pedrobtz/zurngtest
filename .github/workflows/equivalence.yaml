@@ -31,6 +31,18 @@ jobs:
         run: tools/equivalence/build-rng-test "$RUNNER_TEMP/practrand"
       - name: Compare pract_test() with RNG_test
         run: Rscript tools/equivalence/compare.R "$RUNNER_TEMP/practrand/RNG_test"
+      # The comparison must fail when RNG_test does, or reports nothing.
+      - name: Canary, compare.R fails on a broken RNG_test
+        run: |
+          printf '#!/bin/sh\ncat >/dev/null\necho "error: garbage"\nexit 1\n' > "$RUNNER_TEMP/broken"
+          printf '#!/bin/sh\ncat >/dev/null\n' > "$RUNNER_TEMP/silent"
+          chmod +x "$RUNNER_TEMP/broken" "$RUNNER_TEMP/silent"
+          for stub in broken silent; do
+            if Rscript tools/equivalence/compare.R "$RUNNER_TEMP/$stub"; then
+              echo "compare.R passed with the $stub RNG_test"
+              exit 1
+            fi
+          done
       - name: Known results, long runs included
         env:
           ZURNGTEST_LONG_TESTS: "true"

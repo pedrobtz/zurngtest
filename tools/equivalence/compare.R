@@ -2,25 +2,51 @@
 #
 #   Rscript tools/equivalence/compare.R <path-to-RNG_test>
 #
-# Run from the package root with zurngtest installed. For each input below
-# both tools test the same file of bytes with the core battery and standard
-# folding at 64 KiB to 1 MiB; at every length the test names, the
-# evaluations and the p-values (to the precision RNG_test prints) must agree.
-# Exits non-zero on any difference.
+# Run from the package root with zurngtest installed. For each case below
+# both tools test the same bytes with the core battery and standard folding
+# at every length from 64 KiB to the case's maximum (-tlmaxonly: on past a
+# failure); at every length the test names, the evaluations and the p-values
+# (to the precision RNG_test prints) must agree. Exits non-zero on any
+# difference, on an RNG_test that fails, and on a length either tool did not
+# report.
 args <- commandArgs(TRUE)
 rng_test <- normalizePath(args[[1]])
 suppressMessages(library(zurngtest))
 
-inputs <- list(
+# 32-bit words in native order, as RNG_test stdin32 reads them, served by an
+# R function as pract_fun() calls it.
+word_reader <- function(words) {
+  pos <- 0
+  function(n) {
+    out <- words[pos + seq_len(n)]
+    pos <<- pos + n
+    out
+  }
+}
+
+mersenne <- function(bytes) {
+  withr::local_seed(1, .rng_kind = "Mersenne-Twister")
+  as.raw(sample.int(256L, bytes, TRUE) - 1L)
+}
+
+counter <- seq_len(2^18) - 1L
+
+cases <- list(
   # Fails at once, and hard.
-  pattern = rep(as.raw(0:255), length.out = 2^20),
+  pattern = list(bytes = rep(as.raw(0:255), length.out = 2^20)),
   # Passes.
-  mersenne = local({
-    withr::local_seed(1, .rng_kind = "Mersenne-Twister")
-    as.raw(sample.int(256L, 2^20, TRUE) - 1L)
-  }),
-  # 32-bit counter words: fails, on some tests only.
-  counter = writeBin(seq_len(2^18) - 1L, raw(), endian = "little")
+  mersenne = list(bytes = mersenne(2^20)),
+  # 32-bit counter words as bytes: fails, on some tests only.
+  counter = list(bytes = writeBin(counter, raw())),
+  # The same words with 32-bit folding, as pract_fun(), pract_rng() and the
+  # C callable fold them.
+  counter32 = list(
+    bytes = writeBin(counter, raw()),
+    mode = "stdin32",
+    source = pract_fun(word_reader(counter), bits = 32)
+  ),
+  # Past the driver's 16 MiB chunk, so its carried-over blocks are compared.
+  long = list(bytes = mersenne(2^25), max_bytes = 2^25)
 )
 
 # RNG_test -a lines: "  Name (34 chars)  R= +1.2  p = 0.5  evaluation", or
@@ -67,10 +93,18 @@ parse_p <- function(text) {
     nchar(sub(".*\\.", "", mantissa)),
     0
   )
-  exponent <- ifelse(grepl("e", num), suppressWarnings(as.numeric(sub(".*e", "", num))), 0)
+  exponent <- ifelse(
+    grepl("e", num),
+    suppressWarnings(as.numeric(sub(".*e", "", num))),
+    0
+  )
   x <- suppressWarnings(as.numeric(num))
   data.frame(
-    p = ifelse(pass_fail, as.numeric(value == "\"pass\""), ifelse(one_minus, 1 - x, x)),
+    p = ifelse(
+      pass_fail,
+      as.numeric(value == "\"pass\""),
+      ifelse(one_minus, 1 - x, x)
+    ),
     # One unit of the last digit: RNG_test truncates some mantissas.
     tol = ifelse(pass_fail, NA, 1.0001 * 10^(exponent - decimals) + 1e-12),
     pass_fail = pass_fail
@@ -91,32 +125,69 @@ same_p <- function(parsed, ours) {
 }
 
 failures <- 0
-for (name in names(inputs)) {
+fail <- function(name, ...) {
+  cat(sprintf("%-9s %s\n", name, paste0(...)))
+  failures <<- failures + 1
+}
+for (name in names(cases)) {
+  case <- cases[[name]]
+  max_bytes <- if (is.null(case$max_bytes)) 2^20 else case$max_bytes
+  mode <- if (is.null(case$mode)) "stdin" else case$mode
+  source <- if (is.null(case$source)) pract_raw(case$bytes) else case$source
+  lengths <- 2^(16:log2(max_bytes))
   file <- tempfile(fileext = ".bin")
-  writeBin(inputs[[name]], file)
-  out <- system2(
+  writeBin(case$bytes, file)
+  out <- suppressWarnings(system2(
     rng_test,
-    c("stdin", "-a", "-tlmin", "64KB", "-tlmax", "1MB", "-tlmaxonly"),
+    c(
+      mode,
+      "-a",
+      "-tlmin",
+      "64KB",
+      "-tlmax",
+      sprintf("%.0fKB", max_bytes / 1024),
+      "-tlmaxonly"
+    ),
     stdin = file,
     stdout = TRUE,
     stderr = TRUE
-  )
+  ))
+  status <- attr(out, "status")
+  if (!is.null(status) && status != 0) {
+    fail(name, "RNG_test exited with status ", status, ":")
+    cat(paste0("  ", tail(out, 5), "\n"), sep = "")
+    next
+  }
   theirs <- parse_rng_test(out)
   ours <- pract_test(
-    pract_raw(inputs[[name]]),
+    source,
     min_bytes = 2^16,
-    max_bytes = 2^20,
+    max_bytes = max_bytes,
     stop_on_failure = FALSE
   )
-  for (len in unique(theirs$bytes)) {
+  if (is.null(theirs) || !setequal(theirs$bytes, lengths)) {
+    fail(name, "RNG_test did not report every length from 64 KiB")
+    next
+  }
+  if (!setequal(ours$bytes, lengths)) {
+    fail(name, "pract_test() did not report every length from 64 KiB")
+    next
+  }
+  for (len in lengths) {
     t <- theirs[theirs$bytes == len, ]
     o <- ours[ours$bytes == len, ]
     problems <- character()
     if (!setequal(t$test, o$test)) {
       problems <- c(
         problems,
-        paste("only in RNG_test:", paste(setdiff(t$test, o$test), collapse = ", ")),
-        paste("only in pract_test:", paste(setdiff(o$test, t$test), collapse = ", "))
+        paste(
+          "only in RNG_test:",
+          paste(setdiff(t$test, o$test), collapse = ", ")
+        ),
+        paste(
+          "only in pract_test:",
+          paste(setdiff(o$test, t$test), collapse = ", ")
+        )
       )
     }
     common <- intersect(t$test, o$test)
@@ -124,25 +195,33 @@ for (name in names(inputs)) {
     o <- o[match(common, o$test), ]
     differ <- t$evaluation != o$evaluation
     if (any(differ)) {
-      problems <- c(problems, sprintf(
-        "evaluation of %s: RNG_test %s, pract_test %s",
-        common[differ], t$evaluation[differ], o$evaluation[differ]
-      ))
+      problems <- c(
+        problems,
+        sprintf(
+          "evaluation of %s: RNG_test %s, pract_test %s",
+          common[differ],
+          t$evaluation[differ],
+          o$evaluation[differ]
+        )
+      )
     }
     off <- which(!same_p(parse_p(t$p_text), o$p_value))
     if (length(off)) {
-      problems <- c(problems, sprintf(
-        "p-value of %s: RNG_test %s, pract_test %.3g",
-        common[off], t$p_text[off], o$p_value[off]
-      ))
+      problems <- c(
+        problems,
+        sprintf(
+          "p-value of %s: RNG_test %s, pract_test %.3g",
+          common[off],
+          t$p_text[off],
+          o$p_value[off]
+        )
+      )
     }
-    cat(sprintf(
-      "%-9s %8.0f bytes: %d results, %s\n",
-      name, len, nrow(t), if (length(problems)) "DIFFERENT" else "same"
-    ))
     if (length(problems)) {
+      fail(name, sprintf("%8.0f bytes: %d results, DIFFERENT", len, nrow(t)))
       cat(paste0("  ", problems, "\n"), sep = "")
-      failures <- failures + 1
+    } else {
+      cat(sprintf("%-9s %8.0f bytes: %d results, same\n", name, len, nrow(t)))
     }
   }
 }
