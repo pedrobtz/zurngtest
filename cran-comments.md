@@ -26,3 +26,9 @@ https://github.com/pedrobtz/r-actions:
 0 errors | 0 warnings | 1 note
 
 * This is a new release.
+
+## Method References
+
+PractRand has no published paper; its tests and their documentation are
+those of the PractRand distribution, cited in the Description by its
+author and URL (https://pracrand.sourceforge.net/).

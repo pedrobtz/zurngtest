@@ -448,6 +448,18 @@ and `nold`; native checks (ASan, UBSan, valgrind, gctorture, rchk, LTO,
 
 **Design.** Acceptance criteria 1–4.
 
+**Deviations** (2026-10-24).
+
+- `zurand` is out of `Suggests` until it is on CRAN; the guide shows its
+  example without running it.
+- Stage 5's vignette is a pkgdown article (`vignettes/articles/`). It was
+  already left out of the tarball by `.Rbuildignore`, but `R CMD build`
+  still built it into `inst/doc`, which `--as-cran` reports as a NOTE.
+  `VignetteBuilder` is gone, and `rmarkdown` is a website need only.
+- The second critical review (of c1e4b22) filed #44–#69. The Blocking and
+  Required ones, #44–#56, are fixed in this stage. The suggestions,
+  questions and note roll-ups, #57–#69, stay open for after 0.1.0.
+
 ## After 0.1.0
 
 - PractRand's own generators (`sfc64`, `jsf64`, `efiix`) as R generators via
