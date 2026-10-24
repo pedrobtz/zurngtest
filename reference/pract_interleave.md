@@ -35,6 +35,12 @@ sources, or single bytes for
 [`pract_raw()`](https://pedrobtz.github.io/zurngtest/reference/pract_raw.md)
 sources and Knuth generators. The stream ends when any source ends.
 
+## See also
+
+Other sources:
+[`pract_raw()`](https://pedrobtz.github.io/zurngtest/reference/pract_raw.md),
+[`pract_rng()`](https://pedrobtz.github.io/zurngtest/reference/pract_rng.md)
+
 ## Examples
 
 ``` r
@@ -45,5 +51,5 @@ pract_test(seeds, min_bytes = 2^16, max_bytes = 2^17)
 #>   no anomalies in 47 test result(s)
 #> length= 128 kilobytes (2^17 bytes)
 #>   no anomalies in 56 test result(s)
-#> No failure, time= 0.3 seconds
+#> No failure, time= 0.5 seconds
 ```

@@ -20,7 +20,7 @@ and `batteries` (a character vector of battery names).
 ``` r
 zurngtest_info()
 #> $version
-#> [1] "0.0.0.9000"
+#> [1] "0.1.0"
 #> 
 #> $practrand
 #> [1] "0.96"

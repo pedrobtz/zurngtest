@@ -24,7 +24,8 @@ pract_rng(kind = "Mersenne-Twister", seed = 1)
 
 - seed:
 
-  The seed passed to [`set.seed()`](https://rdrr.io/r/base/Random.html).
+  The seed passed to [`set.seed()`](https://rdrr.io/r/base/Random.html):
+  a whole number of at most `.Machine$integer.max` in absolute value.
 
 ## Value
 
@@ -42,10 +43,9 @@ each keep their own stream.
 
 ## See also
 
+Other sources:
+[`pract_interleave()`](https://pedrobtz.github.io/zurngtest/reference/pract_interleave.md),
 [`pract_raw()`](https://pedrobtz.github.io/zurngtest/reference/pract_raw.md)
-and
-[`pract_fun()`](https://pedrobtz.github.io/zurngtest/reference/pract_raw.md)
-for other sources.
 
 ## Examples
 
@@ -56,5 +56,5 @@ pract_test(pract_rng("Mersenne-Twister"), min_bytes = 2^16, max_bytes = 2^17)
 #>   no anomalies in 47 test result(s)
 #> length= 128 kilobytes (2^17 bytes)
 #>   no anomalies in 56 test result(s)
-#> No failure, time= 0.3 seconds
+#> No failure, time= 0.5 seconds
 ```

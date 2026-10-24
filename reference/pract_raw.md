@@ -1,10 +1,14 @@
-# Sources of bits for pract_test()
+# Sources of bits for `pract_test()`
 
 A source tells
 [`pract_test()`](https://pedrobtz.github.io/zurngtest/reference/pract_test.md)
 where the bits to test come from. `pract_raw()` reads raw bytes, from a
 raw vector or a binary connection, in order. `pract_fun()` calls an R
 function for more bits each time the test needs them.
+[`pract_rng()`](https://pedrobtz.github.io/zurngtest/reference/pract_rng.md)
+draws from one of R's own generators, and
+[`pract_interleave()`](https://pedrobtz.github.io/zurngtest/reference/pract_interleave.md)
+combines sources word by word.
 
 ## Usage
 
@@ -48,6 +52,12 @@ run and closed after it, which destroys it, as
 [`readLines()`](https://rdrr.io/r/base/readLines.html) does, so it
 serves one run; an open connection is read from where it is and left
 open.
+
+## See also
+
+Other sources:
+[`pract_interleave()`](https://pedrobtz.github.io/zurngtest/reference/pract_interleave.md),
+[`pract_rng()`](https://pedrobtz.github.io/zurngtest/reference/pract_rng.md)
 
 ## Examples
 

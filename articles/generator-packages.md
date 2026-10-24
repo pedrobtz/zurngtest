@@ -13,7 +13,8 @@ bits, and from C, where ‘PractRand’ reads the generator’s words with no
 R in the loop.
 
 The examples use [zurand](https://github.com/pedrobtz/zurand), a package
-of counter-based generators.
+of counter-based generators. zurand is not on CRAN yet, so its example
+is shown but not run.
 
 ## From R
 
@@ -39,14 +40,6 @@ philox_words <- function(n) {
 }
 
 pract_test(pract_fun(philox_words), min_bytes = 2^20, max_bytes = 2^22)
-#> PractRand 0.96 test of function philox_words, 32-bit words
-#> length= 1 megabyte (2^20 bytes)
-#>   no anomalies in 80 test result(s)
-#> length= 2 megabytes (2^21 bytes)
-#>   no anomalies in 90 test result(s)
-#> length= 4 megabytes (2^22 bytes)
-#>   no anomalies in 99 test result(s)
-#> No failure, time= 0.5 seconds
 ```
 
 Runs this short are smoke tests. ‘PractRand’ results that matter for a

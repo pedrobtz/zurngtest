@@ -11,7 +11,7 @@ RNG_test does."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">zurngtest</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -62,7 +62,8 @@ doubling lengths from <code>min_bytes</code> to <code>max_bytes</code>, as 'Prac
 
 
 <dl><dt id="arg-source">source<a class="anchor" aria-label="anchor" href="#arg-source"></a></dt>
-<dd><p>A source of bits, from <code><a href="pract_raw.html">pract_raw()</a></code> or <code><a href="pract_raw.html">pract_fun()</a></code>.</p></dd>
+<dd><p>A source of bits, from <code><a href="pract_raw.html">pract_raw()</a></code>, <code><a href="pract_raw.html">pract_fun()</a></code>,
+<code><a href="pract_rng.html">pract_rng()</a></code> or <code><a href="pract_interleave.html">pract_interleave()</a></code>.</p></dd>
 
 
 <dt id="arg-battery">battery<a class="anchor" aria-label="anchor" href="#arg-battery"></a></dt>
@@ -184,7 +185,7 @@ failing input; that is reported in a warning of class
 <span class="r-out co"><span class="r-pr">#&gt;</span>   [Low1/32]mod3n(5):(0,9-6)          0.00e+00     FAIL !!!!!!!</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   [Low1/32]mod3n(5):(1,9-6)         8.57e-217     FAIL !!!!!!</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   [Low1/32]mod3n(5):(2,9-6)         3.13e-106     FAIL !!!!!</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Failed at 64 kilobytes (2^16 bytes), time= 0.2 seconds</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Failed at 64 kilobytes (2^16 bytes), time= 0.3 seconds</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># R's own generator, as bytes</span></span></span>
 <span class="r-in"><span><span class="va">bytes</span> <span class="op">&lt;-</span> <span class="fu"><a href="pract_raw.html">pract_fun</a></span><span class="op">(</span><span class="kw">function</span><span class="op">(</span><span class="va">n</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/raw.html" class="external-link">as.raw</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample.int</a></span><span class="op">(</span><span class="fl">256L</span>, <span class="va">n</span>, <span class="cn">TRUE</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span>, bits <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span></span>
@@ -194,7 +195,7 @@ failing input; that is reported in a warning of class
 <span class="r-out co"><span class="r-pr">#&gt;</span>   no anomalies in 36 test result(s)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> length= 128 kilobytes (2^17 bytes)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   no anomalies in 42 test result(s)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> No failure, time= 0.2 seconds</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> No failure, time= 0.3 seconds</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

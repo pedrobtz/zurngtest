@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">zurngtest</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,7 +54,7 @@
       <h1>Testing a generator package</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/pedrobtz/zurngtest/blob/main/vignettes/generator-packages.Rmd" class="external-link"><code>vignettes/generator-packages.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/pedrobtz/zurngtest/blob/main/vignettes/articles/generator-packages.Rmd" class="external-link"><code>vignettes/articles/generator-packages.Rmd</code></a></small>
       <div class="d-none name"><code>generator-packages.Rmd</code></div>
     </div>
 
@@ -69,7 +69,8 @@ with zurngtest: from R, with any function that returns the generator’s
 bits, and from C, where ‘PractRand’ reads the generator’s words with no
 R in the loop.</p>
 <p>The examples use <a href="https://github.com/pedrobtz/zurand" class="external-link">zurand</a>, a package of
-counter-based generators.</p>
+counter-based generators. zurand is not on CRAN yet, so its example is
+shown but not run.</p>
 <div class="section level2">
 <h2 id="from-r">From R<a class="anchor" aria-label="anchor" href="#from-r"></a>
 </h2>
@@ -92,15 +93,7 @@ chunk from its own substream, <code>rng_fold(key, i)</code> for the
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">words</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="fu"><a href="../reference/pract_test.html">pract_test</a></span><span class="op">(</span><span class="fu"><a href="../reference/pract_raw.html">pract_fun</a></span><span class="op">(</span><span class="va">philox_words</span><span class="op">)</span>, min_bytes <span class="op">=</span> <span class="fl">2</span><span class="op">^</span><span class="fl">20</span>, max_bytes <span class="op">=</span> <span class="fl">2</span><span class="op">^</span><span class="fl">22</span><span class="op">)</span></span>
-<span><span class="co">#&gt; PractRand 0.96 test of function philox_words, 32-bit words</span></span>
-<span><span class="co">#&gt; length= 1 megabyte (2^20 bytes)</span></span>
-<span><span class="co">#&gt;   no anomalies in 80 test result(s)</span></span>
-<span><span class="co">#&gt; length= 2 megabytes (2^21 bytes)</span></span>
-<span><span class="co">#&gt;   no anomalies in 90 test result(s)</span></span>
-<span><span class="co">#&gt; length= 4 megabytes (2^22 bytes)</span></span>
-<span><span class="co">#&gt;   no anomalies in 99 test result(s)</span></span>
-<span><span class="co">#&gt; No failure, time= 0.5 seconds</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/pract_test.html">pract_test</a></span><span class="op">(</span><span class="fu"><a href="../reference/pract_raw.html">pract_fun</a></span><span class="op">(</span><span class="va">philox_words</span><span class="op">)</span>, min_bytes <span class="op">=</span> <span class="fl">2</span><span class="op">^</span><span class="fl">20</span>, max_bytes <span class="op">=</span> <span class="fl">2</span><span class="op">^</span><span class="fl">22</span><span class="op">)</span></span></code></pre></div>
 <p>Runs this short are smoke tests. ‘PractRand’ results that matter for
 a generator come from runs of gigabytes to terabytes, which belong in a
 continuous-integration job or a long-running session rather than in a

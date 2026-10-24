@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">zurngtest</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,27 +34,14 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.0.0.9000" id="zurngtest-0009000">zurngtest 0.0.0.9000<a class="anchor" aria-label="anchor" href="#zurngtest-0009000"></a></h2>
-<ul><li>
-<code><a href="../reference/zurngtest_info.html">zurngtest_info()</a></code> reports the package version and the test batteries.</li>
-<li>Every condition the package signals inherits <code>zurngtest_error</code>.</li>
-<li>Bundles PractRand 0.96, compiled without output to the console and without calls that end R; <code><a href="../reference/zurngtest_info.html">zurngtest_info()</a></code> reports its version.</li>
+<h2 class="pkg-version" data-toc-text="0.1.0" id="zurngtest-010">zurngtest 0.1.0<a class="anchor" aria-label="anchor" href="#zurngtest-010"></a></h2>
+<ul><li>Initial CRAN submission.</li>
 <li>
-<code><a href="../reference/pract_test.html">pract_test()</a></code> runs PractRand’s core or expanded battery on a source at doubling lengths and returns a <code>zurngtest_result</code>: one row per test result per length, with PractRand’s evaluation, the first failing length and a <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> method in the style of <code>RNG_test</code>.</li>
+<code><a href="../reference/pract_test.html">pract_test()</a></code> runs the core or expanded battery of PractRand 0.96, by Chris Doty-Humphrey, on a source of bits at doubling lengths. It returns one row per test result and length, with PractRand’s own evaluation, and the first length at which the source failed. With the core battery its results equal those of PractRand’s <code>RNG_test</code> on the same bytes.</li>
+<li>Sources of bits: <code><a href="../reference/pract_raw.html">pract_raw()</a></code> for raw vectors and connections, <code><a href="../reference/pract_raw.html">pract_fun()</a></code> for R functions, <code><a href="../reference/pract_rng.html">pract_rng()</a></code> for R’s own generators, tested on the integers behind <code><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif()</a></code> wherever they can be recovered and without changing the session’s random numbers, and <code><a href="../reference/pract_interleave.html">pract_interleave()</a></code> to combine sources word by word.</li>
+<li>Generator packages can test a generator written in C through the registered C callable <code>zurngtest_test_cfun()</code>, declared in <code>inst/include/zurngtest.h</code>, at about the speed of <code>RNG_test</code>.</li>
 <li>
-<code><a href="../reference/pract_raw.html">pract_raw()</a></code> and <code><a href="../reference/pract_raw.html">pract_fun()</a></code> make sources from raw bytes, connections and R functions.</li>
-<li>
-<code><a href="../reference/pract_rng.html">pract_rng()</a></code> tests one of R’s own generators on its own bits, recovering the integers behind <code><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif()</a></code> where they exist, and leaves the session’s random number stream as it was.</li>
-<li>
-<code><a href="../reference/pract_interleave.html">pract_interleave()</a></code> combines sources word by word, for seeding studies.</li>
-<li>Packages can test a generator written in C through the registered callable <code>zurngtest_test_cfun()</code>, declared in <code>inst/include/zurngtest.h</code>.</li>
-<li>
-<code><a href="../reference/pract_test.html">pract_test()</a></code> gives the results PractRand’s own <code>RNG_test</code> gives for the same bytes, p-values near 0 and 1 included; a CI workflow checks this.</li>
-<li>
-<code><a href="../reference/pract_test.html">?pract_test</a></code> documents PractRand’s evaluations and their thresholds; a new article, “Testing a generator package”, shows how to test a package’s generators from R and from C.</li>
-<li>
-<code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> on a result no longer indents its second and later result lines by an extra space.</li>
-<li>The tests run only where testthat is installed, so the package checks cleanly without its suggested packages.</li>
+<code><a href="../reference/zurngtest_info.html">zurngtest_info()</a></code> reports the package and PractRand versions and the batteries.</li>
 </ul></div>
   </main></div>
 
