@@ -160,7 +160,7 @@ pract_test(pattern, min_bytes = 2^16, max_bytes = 2^16)
 #>   [Low1/32]mod3n(5):(0,9-6)          0.00e+00     FAIL !!!!!!!
 #>   [Low1/32]mod3n(5):(1,9-6)         8.57e-217     FAIL !!!!!!
 #>   [Low1/32]mod3n(5):(2,9-6)         3.13e-106     FAIL !!!!!
-#> Failed at 64 kilobytes (2^16 bytes), time= 0.3 seconds
+#> Failed at 64 kilobytes (2^16 bytes), time= 0.2 seconds
 
 # R's own generator, as bytes
 bytes <- pract_fun(function(n) as.raw(sample.int(256L, n, TRUE) - 1L), bits = 8)
@@ -170,5 +170,5 @@ pract_test(bytes, min_bytes = 2^16, max_bytes = 2^17)
 #>   no anomalies in 36 test result(s)
 #> length= 128 kilobytes (2^17 bytes)
 #>   no anomalies in 42 test result(s)
-#> No failure, time= 0.3 seconds
+#> No failure, time= 0.2 seconds
 ```

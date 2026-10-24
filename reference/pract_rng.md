@@ -56,5 +56,5 @@ pract_test(pract_rng("Mersenne-Twister"), min_bytes = 2^16, max_bytes = 2^17)
 #>   no anomalies in 47 test result(s)
 #> length= 128 kilobytes (2^17 bytes)
 #>   no anomalies in 56 test result(s)
-#> No failure, time= 0.5 seconds
+#> No failure, time= 0.3 seconds
 ```

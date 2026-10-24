@@ -46,7 +46,7 @@ pract_test(pract_fun(philox_words), min_bytes = 2^20, max_bytes = 2^22)
 #>   no anomalies in 90 test result(s)
 #> length= 4 megabytes (2^22 bytes)
 #>   no anomalies in 99 test result(s)
-#> No failure, time= 0.8 seconds
+#> No failure, time= 0.5 seconds
 ```
 
 Runs this short are smoke tests. ‘PractRand’ results that matter for a
