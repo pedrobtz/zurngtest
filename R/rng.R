@@ -63,9 +63,10 @@ rng_kinds <- list(
 #' two seeds in [pract_interleave()], each keep their own stream.
 #'
 #' @param kind The generator, as named by [RNGkind()].
-#' @param seed The seed passed to [set.seed()].
+#' @param seed The seed passed to [set.seed()]: a whole number of at most
+#'   `.Machine$integer.max` in absolute value.
 #' @return An object of class `zurngtest_source`.
-#' @seealso [pract_raw()] and [pract_fun()] for other sources.
+#' @family sources
 #' @export
 #' @examples
 #' pract_test(pract_rng("Mersenne-Twister"), min_bytes = 2^16, max_bytes = 2^17)
@@ -81,8 +82,17 @@ pract_rng <- function(kind = "Mersenne-Twister", seed = 1) {
       "zurngtest_invalid_argument"
     )
   }
-  if (!(is.numeric(seed) && length(seed) == 1 && is.finite(seed))) {
-    zurngtest_abort("`seed` must be a number.", "zurngtest_invalid_argument")
+  if (
+    !(is.numeric(seed) &&
+      length(seed) == 1 &&
+      is.finite(seed) &&
+      seed == floor(seed) &&
+      abs(seed) <= .Machine$integer.max)
+  ) {
+    zurngtest_abort(
+      "`seed` must be a whole number that set.seed() accepts.",
+      "zurngtest_invalid_argument"
+    )
   }
   spec <- rng_kinds[[kind]]
   description <- sprintf(
@@ -96,8 +106,8 @@ pract_rng <- function(kind = "Mersenne-Twister", seed = 1) {
     # draws, so the session's stream is untouched between fills and several
     # pract_rng() sources (pract_interleave()) do not share one stream.
     restore <- switch_rng(kind, seed)
+    on.exit(restore())
     state <- get(".Random.seed", envir = globalenv())
-    restore()
     draw <- function(n) {
       own <- swap_seed(state)
       on.exit(state <<- own())
@@ -118,20 +128,14 @@ pract_rng <- function(kind = "Mersenne-Twister", seed = 1) {
 }
 
 # Sets the generator and seed, returning a function that puts back the
-# kind and the .Random.seed (or its absence) the session had.
+# kind and the .Random.seed (or its absence) the session had. If setting
+# them fails, they are put back before the error leaves.
 switch_rng <- function(kind, seed) {
   env <- globalenv()
   had_seed <- exists(".Random.seed", envir = env, inherits = FALSE)
   old_seed <- if (had_seed) get(".Random.seed", envir = env)
   old_kind <- RNGkind()
-  tryCatch(
-    suppressWarnings(RNGkind(kind)),
-    error = function(cnd) {
-      zurngtest_abort(conditionMessage(cnd), "zurngtest_source_error")
-    }
-  )
-  set.seed(seed)
-  function() {
+  restore <- function() {
     suppressWarnings(RNGkind(old_kind[[1]], old_kind[[2]], old_kind[[3]]))
     if (had_seed) {
       assign(".Random.seed", old_seed, envir = env)
@@ -140,6 +144,17 @@ switch_rng <- function(kind, seed) {
     }
     invisible()
   }
+  ok <- FALSE
+  on.exit(if (!ok) restore())
+  tryCatch(
+    suppressWarnings(RNGkind(kind)),
+    error = function(cnd) {
+      zurngtest_abort(conditionMessage(cnd), "zurngtest_source_error")
+    }
+  )
+  set.seed(seed)
+  ok <- TRUE
+  restore
 }
 
 # Makes `state` the session's .Random.seed, returning a function that puts
