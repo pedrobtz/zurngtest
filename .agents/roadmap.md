@@ -21,7 +21,7 @@ and its last stage is split into documentation, `Full CI` and readiness.
 | 4 | [Known results and RNG_test equivalence](#stage-4--known-results-and-rng_test-equivalence) | quick | [#6](https://github.com/pedrobtz/zurngtest/issues/6) | [#41](https://github.com/pedrobtz/zurngtest/pull/41) | 2026-10-24 |
 | 5 | [Documentation and zurand](#stage-5--documentation-and-zurand) | quick | [#7](https://github.com/pedrobtz/zurngtest/issues/7) | [#42](https://github.com/pedrobtz/zurngtest/pull/42) | 2026-10-24 |
 | 6 | [Full CI](#stage-6--full-ci) | full | [#8](https://github.com/pedrobtz/zurngtest/issues/8) | [#43](https://github.com/pedrobtz/zurngtest/pull/43) | 2026-10-24 |
-| 7 | [v0.1.0 readiness](#stage-7--v010-readiness) | full | [#9](https://github.com/pedrobtz/zurngtest/issues/9) | | |
+| 7 | [v0.1.0 readiness](#stage-7--v010-readiness) | full | [#9](https://github.com/pedrobtz/zurngtest/issues/9) | [#70](https://github.com/pedrobtz/zurngtest/pull/70) | 2026-10-24 |
 
 ## Stage 0 — Package identity
 
