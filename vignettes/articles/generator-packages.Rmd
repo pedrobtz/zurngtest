@@ -1,10 +1,5 @@
 ---
 title: "Testing a generator package"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Testing a generator package}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
