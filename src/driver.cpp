@@ -216,7 +216,7 @@ SEXP zrt_driver_new(SEXP battery, SEXP folding, SEXP bits, SEXP seed,
   int fold = Rf_asLogical(folding);
   int word_bits = Rf_asInteger(bits);
   double seed_value = Rf_asReal(seed);
-  double max_blocks = Rf_asReal(max_bytes) / TestBlock::SIZE;
+  double max_blocks = Rf_asReal(max_bytes) / double(TestBlock::SIZE);
   int chunk_blocks = max_blocks >= MAX_CHUNK_BLOCKS ? MAX_CHUNK_BLOCKS
                      : max_blocks >= 1            ? int(max_blocks)
                                                   : 1;
