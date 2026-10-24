@@ -15,7 +15,8 @@ pract_test(
 )
 }
 \arguments{
-\item{source}{A source of bits, from \code{\link[=pract_raw]{pract_raw()}} or \code{\link[=pract_fun]{pract_fun()}}.}
+\item{source}{A source of bits, from \code{\link[=pract_raw]{pract_raw()}}, \code{\link[=pract_fun]{pract_fun()}},
+\code{\link[=pract_rng]{pract_rng()}} or \code{\link[=pract_interleave]{pract_interleave()}}.}
 
 \item{battery}{The 'PractRand' battery: \code{"core"}, the recommended set of
 tests, or \code{"expanded"}, a wider and slower set.}

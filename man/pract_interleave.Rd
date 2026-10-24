@@ -29,3 +29,9 @@ source ends.
 seeds <- pract_interleave(pract_rng(seed = 1), pract_rng(seed = 2))
 pract_test(seeds, min_bytes = 2^16, max_bytes = 2^17)
 }
+\seealso{
+Other sources:
+\code{\link[=pract_raw]{pract_raw()}},
+\code{\link[=pract_rng]{pract_rng()}}
+}
+\concept{sources}

@@ -54,3 +54,18 @@ test_that("two seeds of one generator interleave into a testable stream", {
   res <- pract_test(source, min_bytes = 2^16, max_bytes = 2^16, folding = FALSE)
   expect_true(is.na(attr(res, "failed_at")))
 })
+
+test_that("pract_interleave() closes what it opened when a later open() fails", {
+  path <- withr::local_tempfile()
+  writeBin(raw(1024), path)
+  con <- file(path)
+  failing <- new_source(
+    function() zurngtest_abort("cannot open", "zurngtest_source_error"),
+    bits = 0L,
+    description = "a source that cannot open"
+  )
+  source <- pract_interleave(pract_raw(con), failing)
+  expect_error(source$open(), class = "zurngtest_source_error")
+  # The connection was opened for the run, so closing destroyed it.
+  expect_error(isOpen(con))
+})

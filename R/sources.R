@@ -1,9 +1,10 @@
-#' Sources of bits for pract_test()
+#' Sources of bits for `pract_test()`
 #'
 #' A source tells [pract_test()] where the bits to test come from.
 #' `pract_raw()` reads raw bytes, from a raw vector or a binary connection,
 #' in order. `pract_fun()` calls an R function for more bits each time the
-#' test needs them.
+#' test needs them. [pract_rng()] draws from one of R's own generators, and
+#' [pract_interleave()] combines sources word by word.
 #'
 #' A raw vector or connection that ends before the test does ends the run
 #' early; see [pract_test()]. A raw vector source can be used for several
@@ -21,6 +22,7 @@
 #'   'PractRand' folds its tests to the word size; `pract_raw()` sources have
 #'   no word size, as with 'PractRand''s `RNG_test stdin`.
 #' @return An object of class `zurngtest_source`.
+#' @family sources
 #' @export
 #' @examples
 #' pract_raw(as.raw(sample(0:255, 1024, replace = TRUE)))

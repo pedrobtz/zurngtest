@@ -45,7 +45,8 @@
 #' failing input; that is reported in a warning of class
 #' `zurngtest_stopped`.
 #'
-#' @param source A source of bits, from [pract_raw()] or [pract_fun()].
+#' @param source A source of bits, from [pract_raw()], [pract_fun()],
+#'   [pract_rng()] or [pract_interleave()].
 #' @param battery The 'PractRand' battery: `"core"`, the recommended set of
 #'   tests, or `"expanded"`, a wider and slower set.
 #' @param min_bytes,max_bytes The shortest and longest lengths tested, in
@@ -83,11 +84,18 @@ pract_test <- function(
   call <- sys.call()
   if (!inherits(source, "zurngtest_source")) {
     zurngtest_abort(
-      "`source` must come from pract_raw() or pract_fun().",
+      paste(
+        "`source` must come from pract_raw(), pract_fun(), pract_rng() or",
+        "pract_interleave()."
+      ),
       "zurngtest_invalid_argument"
     )
   }
-  if (!(is.character(battery) && all(battery %in% battery_names))) {
+  if (
+    !(is.character(battery) &&
+      length(battery) >= 1 &&
+      all(battery %in% battery_names))
+  ) {
     zurngtest_abort(
       sprintf(
         "`battery` must be one of %s.",
@@ -126,8 +134,17 @@ pract_test <- function(
 
   lengths <- min_bytes * 2^(0:log2(max_bytes / min_bytes))
   start <- proc.time()[["elapsed"]]
-  driver <- driver_new(battery, folding, source$bits, seed)
-  reader <- source$open()
+  driver <- driver_new(battery, folding, source$bits, seed, max_bytes)
+  on.exit(driver_free(driver), add = TRUE)
+
+  # A source's errors name this call, not the source's own functions.
+  from_source <- function(expr) {
+    tryCatch(expr, zurngtest_source_error = function(cnd) {
+      cnd$call <- call
+      stop(cnd)
+    })
+  }
+  reader <- from_source(source$open())
   on.exit(reader$close(), add = TRUE)
 
   chunk <- 2^24
@@ -176,7 +193,7 @@ pract_test <- function(
     for (len in lengths) {
       while (fed < len && !ended && !halted) {
         want <- min(len - fed, chunk)
-        data <- reader$fill(want)
+        data <- from_source(reader$fill(want))
         got <- byte_length(data)
         if (got < want) {
           ended <- TRUE
@@ -209,7 +226,8 @@ pract_test <- function(
               format(min_bytes, scientific = FALSE)
             ),
             "zurngtest_source_error",
-            bytes = fed
+            bytes = fed,
+            call = call
           )
         }
         if (fed > len / 2) {
