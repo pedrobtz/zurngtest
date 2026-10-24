@@ -19,6 +19,9 @@ jobs:
   R-CMD-check:
     uses: pedrobtz/r-actions/.github/workflows/r-cmd-check.yml@v1
     with:
+      # CRAN's NOSUGGESTS and NOLD flavors; full profile only.
+      nosuggests: true
+      nold: true
       # The default four legs plus Windows R-devel, the combination CRAN's own
       # Windows R-devel check runs. Full profile only.
       runners: |

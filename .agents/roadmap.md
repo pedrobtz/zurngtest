@@ -20,7 +20,7 @@ and its last stage is split into documentation, `Full CI` and readiness.
 | 3 | [R generators, interleaving and the C callable](#stage-3--r-generators-interleaving-and-the-c-callable) | quick | [#5](https://github.com/pedrobtz/zurngtest/issues/5) | [#40](https://github.com/pedrobtz/zurngtest/pull/40) | 2026-10-24 |
 | 4 | [Known results and RNG_test equivalence](#stage-4--known-results-and-rng_test-equivalence) | quick | [#6](https://github.com/pedrobtz/zurngtest/issues/6) | [#41](https://github.com/pedrobtz/zurngtest/pull/41) | 2026-10-24 |
 | 5 | [Documentation and zurand](#stage-5--documentation-and-zurand) | quick | [#7](https://github.com/pedrobtz/zurngtest/issues/7) | [#42](https://github.com/pedrobtz/zurngtest/pull/42) | 2026-10-24 |
-| 6 | [Full CI](#stage-6--full-ci) | full | [#8](https://github.com/pedrobtz/zurngtest/issues/8) | | |
+| 6 | [Full CI](#stage-6--full-ci) | full | [#8](https://github.com/pedrobtz/zurngtest/issues/8) | [#43](https://github.com/pedrobtz/zurngtest/pull/43) | 2026-10-24 |
 | 7 | [v0.1.0 readiness](#stage-7--v010-readiness) | full | [#9](https://github.com/pedrobtz/zurngtest/issues/9) | | |
 
 ## Stage 0 — Package identity
@@ -403,6 +403,16 @@ default branch's code.
 **Exit criteria.**
 
 - A full-profile run is green on the pull request and on the merge commit.
+
+**Done** (2026-10-24). The full run on Stage 5's merge (`d8c45f5`) was green on
+every job it ran, and the `Full CI` issue had no comments. But
+`nosuggests` and `nold` are opt-in inputs of `r-cmd-check.yml` and had
+never run. This stage turns both on. It also runs the test suite only where
+testthat is installed: without its suggested packages the check failed on
+`library(testthat)`. The full profile is green on the pull request
+(`9ad16f8`): R CMD check on every runner and container plus `nosuggests`
+and `nold`; native checks (ASan, UBSan, valgrind, gctorture, rchk, LTO,
+`-fanalyzer`, cran-special); equivalence, vendor, coverage and pkgdown.
 
 **Design.** §11; acceptance criterion 1.
 

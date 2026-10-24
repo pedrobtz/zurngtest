@@ -23,3 +23,5 @@
   generators from R and from C.
 * `print()` on a result no longer indents its second and later result lines
   by an extra space.
+* The tests run only where testthat is installed, so the package checks
+  cleanly without its suggested packages.
