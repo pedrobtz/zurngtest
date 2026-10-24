@@ -248,30 +248,6 @@ test_that("an error PractRand raises ends the run with a warning", {
   expect_equal(unique(res$bytes), 2^(16:19))
 })
 
-# A result as pract_test() returns it, with chosen rows, so that print() is
-# checked on fixed numbers.
-fixed_result <- function(bytes, evaluation, failed_at = NA_real_) {
-  p_value <- c(
-    normal = 0.5,
-    normalish = 0.3,
-    unusual = 0.01,
-    FAIL = 1e-12
-  )[evaluation]
-  structure(
-    data.frame(
-      bytes = bytes,
-      test = sprintf("Test%d", seq_along(bytes)),
-      p_value = unname(p_value),
-      evaluation = evaluation,
-      stringsAsFactors = FALSE
-    ),
-    class = c("zurngtest_result", "data.frame"),
-    failed_at = failed_at,
-    source = "a fixed source",
-    elapsed = 0
-  )
-}
-
 test_that("print() reports a failing run", {
   x <- fixed_result(
     rep(2^16, 3),

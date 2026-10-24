@@ -1,26 +1,7 @@
-# The words a reader gives, as unsigned 32-bit values.
-unsigned <- function(words) {
-  x <- as.double(words)
-  x[is.na(words)] <- 2^31
-  x + ifelse(!is.na(words) & words < 0, 2^32, 0)
-}
-
-# A kind's first n numbers from runif() and from a pract_rng() reader.
-draws <- function(kind, n, bytes_each = 4) {
-  reader <- pract_rng(kind, seed = 3)$open()
-  words <- reader$fill(n * bytes_each)
-  reader$close()
-  list(
-    words = words,
-    # RNGkind() warns that Marsaglia-Multicarry is poor.
-    u = suppressWarnings(withr::with_seed(3, stats::runif(n), .rng_kind = kind))
-  )
-}
-
 test_that("pract_rng() recovers each 32-bit kind's integers exactly", {
   # unif_rand() is the integer times these constants, from R's
-  # src/main/RNG.c (MT_genrand(), i2_32m1 and normc), so the words are
-  # right only if they give back runif()'s numbers exactly.
+  # src/main/RNG.c (MT_genrand(), i2_32m1 and normc), so each word must be
+  # the integer that gives back runif()'s number.
   constants <- c(
     "Mersenne-Twister" = 2.3283064365386963e-10,
     "Marsaglia-Multicarry" = 2.328306437080797e-10,
@@ -29,11 +10,7 @@ test_that("pract_rng() recovers each 32-bit kind's integers exactly", {
   )
   for (kind in names(constants)) {
     got <- draws(kind, 1000)
-    expect_identical(
-      unsigned(got$words) * constants[[kind]],
-      got$u,
-      label = kind
-    )
+    expect_nearest(unsigned(got$words), got$u, constants[[kind]], kind)
   }
 })
 
@@ -51,7 +28,7 @@ test_that("pract_rng() packs the Knuth kinds' 30-bit integers exactly", {
     }))
     values <- colSums(matrix(bits, nrow = 30) * 2^(29:0))
     # unif_rand() is the integer times KT (R's src/main/RNG.c), not 2^-30.
-    expect_identical(values * 9.31322574615479e-10, got$u, label = kind)
+    expect_nearest(values, got$u, 9.31322574615479e-10, kind)
   }
 })
 

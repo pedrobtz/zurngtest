@@ -15,3 +15,27 @@ r_bytes <- function() {
 quick_test <- function(source, ...) {
   pract_test(source, folding = FALSE, ...)
 }
+
+# A result as pract_test() returns it, with chosen rows, so that print() is
+# checked on fixed numbers.
+fixed_result <- function(bytes, evaluation, failed_at = NA_real_) {
+  p_value <- c(
+    normal = 0.5,
+    normalish = 0.3,
+    unusual = 0.01,
+    FAIL = 1e-12
+  )[evaluation]
+  structure(
+    data.frame(
+      bytes = bytes,
+      test = sprintf("Test%d", seq_along(bytes)),
+      p_value = unname(p_value),
+      evaluation = evaluation,
+      stringsAsFactors = FALSE
+    ),
+    class = c("zurngtest_result", "data.frame"),
+    failed_at = failed_at,
+    source = "a fixed source",
+    elapsed = 0
+  )
+}
