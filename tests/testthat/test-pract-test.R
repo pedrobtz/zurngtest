@@ -33,6 +33,22 @@ test_that("a good source passes a short run", {
   expect_false(any(startsWith(res$evaluation, "FAIL")))
 })
 
+test_that("seed reaches the tests that use it", {
+  skip_on_cran() # the expanded battery, whose tests use it: seconds each
+  run <- function(seed) {
+    res <- pract_test(
+      repeating(2^16),
+      battery = "expanded",
+      min_bytes = 2^16,
+      max_bytes = 2^16,
+      seed = seed
+    )
+    res$p_value
+  }
+  expect_identical(run(1), run(1))
+  expect_false(identical(run(1), run(2)))
+})
+
 test_that("the same seed gives the same results", {
   run <- function() {
     quick_test(repeating(2^16), min_bytes = 2^16, max_bytes = 2^16, seed = 7)
@@ -63,11 +79,75 @@ test_that("a source that ends before min_bytes is a source error", {
     class = "zurngtest_source_error"
   )
   con <- rawConnection(raw(2^12))
-  on.exit(close(con))
+  withr::defer(close(con))
   expect_error(
     pract_test(pract_raw(con), min_bytes = 2^16),
     class = "zurngtest_source_error"
   )
+})
+
+test_that("pract_test() closes a connection it opened, on success and on error", {
+  path <- withr::local_tempfile()
+  writeBin(as.raw(rep(0:255, 2^8)), path)
+  con <- file(path)
+  quick_test(pract_raw(con), min_bytes = 2^16, max_bytes = 2^16)
+  # Closing destroys the connection.
+  expect_error(isOpen(con))
+  con <- file(path)
+  expect_error(
+    quick_test(pract_raw(con), min_bytes = 2^17),
+    class = "zurngtest_source_error"
+  )
+  expect_error(isOpen(con))
+})
+
+test_that("pract_test() leaves an open connection open", {
+  con <- rawConnection(as.raw(rep(0:255, 2^8)))
+  withr::defer(close(con))
+  quick_test(pract_raw(con), min_bytes = 2^16, max_bytes = 2^16)
+  expect_true(isOpen(con))
+})
+
+test_that("pract_test() frees its driver on success and on error", {
+  freed <- list()
+  free <- driver_free
+  local_mocked_bindings(driver_free = function(driver) {
+    freed[[length(freed) + 1]] <<- driver
+    free(driver)
+  })
+  quick_test(repeating(2^16), min_bytes = 2^16, max_bytes = 2^16)
+  expect_error(
+    quick_test(repeating(2^12), min_bytes = 2^16),
+    class = "zurngtest_source_error"
+  )
+  expect_length(freed, 2)
+  for (driver in freed) {
+    expect_error(driver_results(driver), class = "zurngtest_internal_error")
+  }
+})
+
+test_that("an error while feeding PractRand ends the run with a warning", {
+  # No input is known to make PractRand 0.96 fail while testing, so a
+  # stand-in error takes the place of one (src/driver.cpp).
+  calls <- 0
+  feed <- driver_feed
+  local_mocked_bindings(driver_feed = function(driver, data) {
+    calls <<- calls + 1
+    if (calls == 2) {
+      zurngtest_abort("a stand-in", "zurngtest_internal_error")
+    }
+    feed(driver, data)
+  })
+  expect_warning(
+    res <- quick_test(
+      repeating(2^18),
+      min_bytes = 2^16,
+      max_bytes = 2^18,
+      stop_on_failure = FALSE
+    ),
+    class = "zurngtest_stopped"
+  )
+  expect_equal(unique(res$bytes), 2^16)
 })
 
 test_that("an interrupt returns the lengths already completed", {
@@ -99,6 +179,10 @@ test_that("pract_test() checks its arguments", {
   expect_error(pract_test(raw(10)), class = "zurngtest_invalid_argument")
   expect_error(
     pract_test(source, battery = "big"),
+    class = "zurngtest_invalid_argument"
+  )
+  expect_error(
+    pract_test(source, battery = character()),
     class = "zurngtest_invalid_argument"
   )
   expect_error(
@@ -162,6 +246,23 @@ test_that("an error PractRand raises ends the run with a warning", {
     class = "zurngtest_stopped"
   )
   expect_equal(unique(res$bytes), 2^(16:19))
+})
+
+test_that("print() reports a failing run", {
+  x <- fixed_result(
+    rep(2^16, 3),
+    c("FAIL", "normal", "normalish"),
+    failed_at = 2^16
+  )
+  expect_snapshot(print(x))
+})
+
+test_that("print() reports a passing run that ended short", {
+  x <- fixed_result(
+    c(2^20, 2^20, 2^21, 2^21, 2^21, 3 * 2^20),
+    c("normal", "normalish", "unusual", "normal", NA, "normal")
+  )
+  expect_snapshot(print(x))
 })
 
 test_that("print() shows the source, the lengths and the anomalies", {

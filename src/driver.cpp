@@ -36,7 +36,7 @@ const int MAX_CHUNK_BLOCKS = 1 << 14;
 
 class Driver {
  public:
-  Driver(int battery, bool folding, int bits, Uint64 seed);
+  Driver(int battery, bool folding, int bits, Uint64 seed, int chunk_blocks);
   ~Driver();
   void feed(const unsigned char *data, std::size_t nblocks);
   void collect();
@@ -50,6 +50,7 @@ class Driver {
   PractRand::RNGs::Polymorphic::hc256 known_good;
   ListOfTests tests;
   std::vector<TestBlock> buffer;
+  int chunk_blocks;
   int blocks_to_repeat;
   int prefix_blocks;
   int main_blocks;
@@ -57,8 +58,10 @@ class Driver {
 
 typedef ListOfTests (*BatteryFn)();
 
-Driver::Driver(int battery, bool folding, int bits, Uint64 seed)
-    : known_good(seed), prefix_blocks(0), main_blocks(0) {
+// `chunk_blocks`, at most MAX_CHUNK_BLOCKS, is the most blocks one call to
+// the tests takes, and sizes the buffer.
+Driver::Driver(int battery, bool folding, int bits, Uint64 seed, int chunk_blocks)
+    : known_good(seed), chunk_blocks(chunk_blocks), prefix_blocks(0), main_blocks(0) {
   BatteryFn base = battery == 2
                        ? PractRand::Tests::Batteries::get_expanded_core_tests
                        : PractRand::Tests::Batteries::get_core_tests;
@@ -71,7 +74,7 @@ Driver::Driver(int battery, bool folding, int bits, Uint64 seed)
     int repeat = tests.tests[i]->get_blocks_to_repeat();
     if (repeat > blocks_to_repeat) blocks_to_repeat = repeat;
   }
-  buffer.resize(MAX_CHUNK_BLOCKS + blocks_to_repeat);
+  buffer.resize(chunk_blocks + blocks_to_repeat);
 }
 
 Driver::~Driver() {
@@ -92,8 +95,8 @@ void Driver::feed(const unsigned char *data, std::size_t nblocks) {
                    TestBlock::SIZE * keep);
     }
     prefix_blocks = keep;
-    main_blocks = nblocks > std::size_t(MAX_CHUNK_BLOCKS) ? MAX_CHUNK_BLOCKS
-                                                          : int(nblocks);
+    main_blocks = nblocks > std::size_t(chunk_blocks) ? chunk_blocks
+                                                      : int(nblocks);
     std::memcpy(&buffer[prefix_blocks], data, TestBlock::SIZE * main_blocks);
     for (std::size_t i = 0; i < tests.tests.size(); i++) {
       tests.tests[i]->test_blocks(&buffer[prefix_blocks], main_blocks);
@@ -206,17 +209,26 @@ Driver *get_driver(SEXP ptr, char *message) {
 
 extern "C" {
 
-SEXP zrt_driver_new(SEXP battery, SEXP folding, SEXP bits, SEXP seed) {
+SEXP zrt_driver_new(SEXP battery, SEXP folding, SEXP bits, SEXP seed,
+                    SEXP max_bytes) {
   char message[MESSAGE_SIZE] = "";
   int battery_index = Rf_asInteger(battery);
   int fold = Rf_asLogical(folding);
   int word_bits = Rf_asInteger(bits);
   double seed_value = Rf_asReal(seed);
+  double max_blocks = Rf_asReal(max_bytes) / double(TestBlock::SIZE);
+  int chunk_blocks = max_blocks >= MAX_CHUNK_BLOCKS ? MAX_CHUNK_BLOCKS
+                     : max_blocks >= 1            ? int(max_blocks)
+                                                  : 1;
   SEXP ptr = PROTECT(R_MakeExternalPtr(NULL, R_NilValue, R_NilValue));
   R_RegisterCFinalizerEx(ptr, finalize_driver, TRUE);
+  // The constructor throws only std::bad_alloc, which no test can provoke
+  // portably; catch (...) here and below is a backstop, since PractRand
+  // throws only std::runtime_error (0001-no-stdio.patch).
   try {
     R_SetExternalPtrAddr(
-        ptr, new Driver(battery_index, fold == 1, word_bits, Uint64(seed_value)));
+        ptr, new Driver(battery_index, fold == 1, word_bits, Uint64(seed_value),
+                        chunk_blocks));
   } catch (const std::exception &e) {
     copy_message(message, e.what());
   } catch (...) {
@@ -225,6 +237,12 @@ SEXP zrt_driver_new(SEXP battery, SEXP folding, SEXP bits, SEXP seed) {
   if (message[0]) signal_internal_error(message);
   UNPROTECT(1);
   return ptr;
+}
+
+// Deletes the driver now; the finalizer then finds nothing to do.
+SEXP zrt_driver_free(SEXP ptr) {
+  if (TYPEOF(ptr) == EXTPTRSXP) finalize_driver(ptr);
+  return R_NilValue;
 }
 
 SEXP zrt_driver_feed(SEXP ptr, SEXP data) {
@@ -246,6 +264,10 @@ SEXP zrt_driver_feed(SEXP ptr, SEXP data) {
   if (!message[0] && nbytes % TestBlock::SIZE != 0) {
     copy_message(message, "data must be whole 1024-byte blocks");
   }
+  // PractRand's tests can call issue_error() while testing, on a broken
+  // internal invariant or a failed allocation; no input is known to reach
+  // one in 0.96, so the tests reach R's handling of this error with a
+  // stand-in (test-pract-test.R).
   if (!message[0]) {
     try {
       driver->feed(bytes, nbytes / TestBlock::SIZE);
@@ -271,7 +293,10 @@ SEXP zrt_driver_results(SEXP ptr) {
       copy_message(message, "unknown C++ exception");
     }
   }
-  if (message[0]) signal_internal_error(message);
+  if (message[0]) {
+    signal_internal_error(message);  // does not return
+    return R_NilValue;
+  }
 
   R_xlen_t n = R_xlen_t(driver->names.size());
   SEXP test = PROTECT(Rf_allocVector(STRSXP, n));

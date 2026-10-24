@@ -13,6 +13,7 @@
 #' @param ... Two or more sources, from [pract_raw()], [pract_fun()],
 #'   [pract_rng()] or `pract_interleave()`.
 #' @return An object of class `zurngtest_source`.
+#' @family sources
 #' @export
 #' @examples
 #' seeds <- pract_interleave(pract_rng(seed = 1), pract_rng(seed = 2))
@@ -27,7 +28,10 @@ pract_interleave <- function(...) {
   }
   if (!all(vapply(sources, inherits, logical(1), "zurngtest_source"))) {
     zurngtest_abort(
-      "Every argument must be a source, from pract_raw(), pract_fun() or pract_rng().",
+      paste(
+        "Every argument must be a source, from pract_raw(), pract_fun(),",
+        "pract_rng() or pract_interleave()."
+      ),
       "zurngtest_invalid_argument"
     )
   }

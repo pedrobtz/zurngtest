@@ -21,7 +21,7 @@ and its last stage is split into documentation, `Full CI` and readiness.
 | 4 | [Known results and RNG_test equivalence](#stage-4--known-results-and-rng_test-equivalence) | quick | [#6](https://github.com/pedrobtz/zurngtest/issues/6) | [#41](https://github.com/pedrobtz/zurngtest/pull/41) | 2026-10-24 |
 | 5 | [Documentation and zurand](#stage-5--documentation-and-zurand) | quick | [#7](https://github.com/pedrobtz/zurngtest/issues/7) | [#42](https://github.com/pedrobtz/zurngtest/pull/42) | 2026-10-24 |
 | 6 | [Full CI](#stage-6--full-ci) | full | [#8](https://github.com/pedrobtz/zurngtest/issues/8) | [#43](https://github.com/pedrobtz/zurngtest/pull/43) | 2026-10-24 |
-| 7 | [v0.1.0 readiness](#stage-7--v010-readiness) | full | [#9](https://github.com/pedrobtz/zurngtest/issues/9) | | |
+| 7 | [v0.1.0 readiness](#stage-7--v010-readiness) | full | [#9](https://github.com/pedrobtz/zurngtest/issues/9) | [#70](https://github.com/pedrobtz/zurngtest/pull/70) | 2026-10-24 |
 
 ## Stage 0 — Package identity
 
@@ -308,7 +308,14 @@ build; `devtools::load_all()` builds at -O0 and is about three times slower).
   repeating pattern, R's Mersenne-Twister as bytes, and 32-bit counter words,
   at 64 KiB to 1 MiB. Every test name, evaluation and p-value (to the digits
   `RNG_test` prints, which it sometimes truncates) agrees at every length,
-  so the six patches change none of these results.
+  so the six patches change none of these results. Added 2026-10-24 after
+  the Stage 7 review
+  ([#45](https://github.com/pedrobtz/zurngtest/issues/45)): the counter
+  words with 32-bit folding (`RNG_test stdin32` against `pract_fun()`), and
+  32 MiB of Mersenne-Twister bytes, past the driver's 16 MiB chunk; all 30
+  lengths agree. The script now fails when `RNG_test` exits non-zero or
+  either tool misses a length, and the workflow checks that with two broken
+  stand-ins for `RNG_test` on every run.
 - **Known results**, each length the one `RNG_test` reports for the same
   stream: a full-output 32-bit LCG (Numerical Recipes) fails at 4 KiB;
   xorshift32 (13, 17, 5) fails at 16 KiB. hc256 passes to 256 MiB,
@@ -440,6 +447,18 @@ and `nold`; native checks (ASan, UBSan, valgrind, gctorture, rchk, LTO,
 - `urlchecker` and `spelling` report nothing.
 
 **Design.** Acceptance criteria 1–4.
+
+**Deviations** (2026-10-24).
+
+- `zurand` is out of `Suggests` until it is on CRAN; the guide shows its
+  example without running it.
+- Stage 5's vignette is a pkgdown article (`vignettes/articles/`). It was
+  already left out of the tarball by `.Rbuildignore`, but `R CMD build`
+  still built it into `inst/doc`, which `--as-cran` reports as a NOTE.
+  `VignetteBuilder` is gone, and `rmarkdown` is a website need only.
+- The second critical review (of c1e4b22) filed #44–#69. The Blocking and
+  Required ones, #44–#56, are fixed in this stage. The suggestions,
+  questions and note roll-ups, #57–#69, stay open for after 0.1.0.
 
 ## After 0.1.0
 

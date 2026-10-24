@@ -35,6 +35,7 @@ test_that("the .Call entry points are registered and found only as symbols", {
     c(
       "zrt_cfun_fill",
       "zrt_driver_feed",
+      "zrt_driver_free",
       "zrt_driver_new",
       "zrt_driver_results",
       "zrt_issue_error_for_tests",

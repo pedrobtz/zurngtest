@@ -18,4 +18,4 @@ reference:
 articles:
   - title: Guides
     contents:
-      - generator-packages
+      - articles/generator-packages

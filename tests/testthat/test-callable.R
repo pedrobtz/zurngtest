@@ -26,26 +26,73 @@ test_that("the C callable gives the same results as pract_test() on the same wor
   expect_equal(attr(from_c, "failed_at"), 2^16)
 })
 
-test_that("the C callable takes NULL options and rejects others", {
+test_that("the C callable takes NULL options", {
   res <- .Call(zrt_test_cfun_counter, 0, NULL)
   expect_s3_class(res, "zurngtest_result")
-  expect_error(
-    .Call(zrt_test_cfun_counter, 0, list(1)),
-    class = "zurngtest_invalid_argument"
+  # The defaults run to 16 GiB, so this checks they stop at the failure.
+  expect_equal(attr(res, "failed_at"), 2^20)
+})
+
+test_that("the C callable takes only pract_test() arguments, by name", {
+  bad <- list(
+    list(1),
+    list(maxbytes = 2^20),
+    list(source = 1),
+    list(min_bytes = 2^16, 2^20),
+    list(min_bytes = 2^16, min_bytes = 2^17),
+    "core"
   )
+  for (options in bad) {
+    expect_error(
+      .Call(zrt_test_cfun_counter, 0, options),
+      class = "zurngtest_invalid_argument"
+    )
+  }
   expect_error(
     .Call(zrt_test_cfun_counter, 0, list(battery = "x")),
     class = "zurngtest_invalid_argument"
   )
 })
 
+test_that("a C generator's source is gone once its call has returned", {
+  # The source outlives the call through anything that keeps it, here a
+  # calling handler; its generator lived on the C stack.
+  kept <- NULL
+  expect_error(
+    withCallingHandlers(
+      .Call(zrt_test_cfun_counter, 0, list(min_bytes = 1)),
+      zurngtest_error = function(cnd) kept <<- dynGet("source")
+    ),
+    class = "zurngtest_invalid_argument"
+  )
+  expect_s3_class(kept, "zurngtest_source")
+  expect_error(
+    pract_test(kept, min_bytes = 2^16, max_bytes = 2^16),
+    class = "zurngtest_source_error"
+  )
+})
+
+test_that("an error from the C callable names pract_test(), not the source", {
+  cnd <- expect_error(
+    .Call(zrt_test_cfun_counter, 0, list(min_bytes = 1)),
+    class = "zurngtest_invalid_argument"
+  )
+  expect_equal(conditionCall(cnd), quote(pract_test(source, min_bytes = 1)))
+})
+
+test_that("the test generators reject an unknown name", {
+  expect_error(known_generator("none"), "unknown test generator")
+})
+
+test_that("the C header is installed", {
+  # LinkingTo users find it here; under load_all() this is inst/include.
+  header <- system.file("include", "zurngtest.h", package = "zurngtest")
+  expect_true(nzchar(header))
+})
+
 test_that("inst/include/zurngtest.h compiles standalone as C99 and C++", {
   skip_on_cran()
   header <- system.file("include", "zurngtest.h", package = "zurngtest")
-  if (!nzchar(header)) {
-    header <- testthat::test_path("..", "..", "inst", "include", "zurngtest.h")
-  }
-  skip_if_not(file.exists(header), "header not found")
   r <- file.path(R.home("bin"), "R")
   cc <- system2(r, c("CMD", "config", "CC"), stdout = TRUE)
   cxx <- system2(r, c("CMD", "config", "CXX"), stdout = TRUE)

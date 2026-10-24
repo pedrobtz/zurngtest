@@ -11,7 +11,9 @@
 
 extern "C" {
 
-SEXP zrt_driver_new(SEXP battery, SEXP folding, SEXP bits, SEXP seed);
+SEXP zrt_driver_new(SEXP battery, SEXP folding, SEXP bits, SEXP seed,
+                    SEXP max_bytes);
+SEXP zrt_driver_free(SEXP driver);
 SEXP zrt_driver_feed(SEXP driver, SEXP data);
 SEXP zrt_driver_results(SEXP driver);
 SEXP zrt_issue_error_for_tests(void);
@@ -26,7 +28,8 @@ SEXP zrt_practrand_version(void) {
 }
 
 static const R_CallMethodDef call_methods[] = {
-    {"zrt_driver_new", (DL_FUNC)&zrt_driver_new, 4},
+    {"zrt_driver_new", (DL_FUNC)&zrt_driver_new, 5},
+    {"zrt_driver_free", (DL_FUNC)&zrt_driver_free, 1},
     {"zrt_driver_feed", (DL_FUNC)&zrt_driver_feed, 2},
     {"zrt_driver_results", (DL_FUNC)&zrt_driver_results, 1},
     {"zrt_issue_error_for_tests", (DL_FUNC)&zrt_issue_error_for_tests, 0},

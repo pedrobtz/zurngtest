@@ -9,7 +9,8 @@ pract_rng(kind = "Mersenne-Twister", seed = 1)
 \arguments{
 \item{kind}{The generator, as named by \code{\link[=RNGkind]{RNGkind()}}.}
 
-\item{seed}{The seed passed to \code{\link[=set.seed]{set.seed()}}.}
+\item{seed}{The seed passed to \code{\link[=set.seed]{set.seed()}}: a whole number of at most
+\code{.Machine$integer.max} in absolute value.}
 }
 \value{
 An object of class \code{zurngtest_source}.
@@ -34,5 +35,8 @@ two seeds in \code{\link[=pract_interleave]{pract_interleave()}}, each keep thei
 pract_test(pract_rng("Mersenne-Twister"), min_bytes = 2^16, max_bytes = 2^17)
 }
 \seealso{
-\code{\link[=pract_raw]{pract_raw()}} and \code{\link[=pract_fun]{pract_fun()}} for other sources.
+Other sources:
+\code{\link[=pract_interleave]{pract_interleave()}},
+\code{\link[=pract_raw]{pract_raw()}}
 }
+\concept{sources}

@@ -3,7 +3,7 @@
 \name{pract_raw}
 \alias{pract_raw}
 \alias{pract_fun}
-\title{Sources of bits for pract_test()}
+\title{Sources of bits for \code{pract_test()}}
 \usage{
 pract_raw(x)
 
@@ -28,7 +28,8 @@ An object of class \code{zurngtest_source}.
 A source tells \code{\link[=pract_test]{pract_test()}} where the bits to test come from.
 \code{pract_raw()} reads raw bytes, from a raw vector or a binary connection,
 in order. \code{pract_fun()} calls an R function for more bits each time the
-test needs them.
+test needs them. \code{\link[=pract_rng]{pract_rng()}} draws from one of R's own generators, and
+\code{\link[=pract_interleave]{pract_interleave()}} combines sources word by word.
 }
 \details{
 A raw vector or connection that ends before the test does ends the run
@@ -44,3 +45,9 @@ pract_raw(as.raw(sample(0:255, 1024, replace = TRUE)))
 # R's own generator, as bytes
 pract_fun(function(n) as.raw(sample.int(256L, n, TRUE) - 1L), bits = 8)
 }
+\seealso{
+Other sources:
+\code{\link[=pract_interleave]{pract_interleave()}},
+\code{\link[=pract_rng]{pract_rng()}}
+}
+\concept{sources}
