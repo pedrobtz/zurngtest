@@ -8,7 +8,6 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
-has_zurand <- requireNamespace("zurand", quietly = TRUE)
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
@@ -24,8 +23,8 @@ and from C, where 'PractRand' reads the generator's words with no R in the
 loop.
 
 The examples use [zurand](https://github.com/pedrobtz/zurand), a package of
-counter-based generators.
-`r if (!has_zurand) "zurand is not installed here, so the examples that use it are shown but not run."`
+counter-based generators. zurand is not on CRAN yet, so its example is shown
+but not run.
 
 ## From R
 
@@ -35,7 +34,7 @@ words of the stream that `key` names. A long stream therefore takes each
 chunk from its own substream, `rng_fold(key, i)` for the `i`th chunk, the
 way zurand describes substreams.
 
-```{r zurand-source, eval = has_zurand}
+```{r zurand-source, eval = FALSE}
 library(zurand)
 
 key <- rng_key(2024)
