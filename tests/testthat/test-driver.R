@@ -1,7 +1,7 @@
-test_that("an error inside PractRand reaches R as zurngtest_internal_error", {
+test_that("an error inside PractRand reaches R as zurngtest_practrand_error", {
   expect_error(
     .Call(zrt_issue_error_for_tests),
-    class = "zurngtest_internal_error"
+    class = "zurngtest_practrand_error"
   )
 })
 

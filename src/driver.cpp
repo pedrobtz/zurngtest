@@ -69,12 +69,23 @@ Driver::Driver(int battery, bool folding, int bits, Uint64 seed, int chunk_block
                         bits, base)
                   : base();
   blocks_to_repeat = 0;
-  for (std::size_t i = 0; i < tests.tests.size(); i++) {
-    tests.tests[i]->init(&known_good);
-    int repeat = tests.tests[i]->get_blocks_to_repeat();
-    if (repeat > blocks_to_repeat) blocks_to_repeat = repeat;
+  // A throwing constructor never runs the destructor, so the tests are
+  // released here: deinit() for those initialised, delete for all.
+  std::size_t ready = 0;
+  try {
+    for (; ready < tests.tests.size(); ready++) {
+      tests.tests[ready]->init(&known_good);
+      int repeat = tests.tests[ready]->get_blocks_to_repeat();
+      if (repeat > blocks_to_repeat) blocks_to_repeat = repeat;
+    }
+    buffer.resize(chunk_blocks + blocks_to_repeat);
+  } catch (...) {
+    for (std::size_t i = 0; i < tests.tests.size(); i++) {
+      if (i < ready) tests.tests[i]->deinit();
+      delete tests.tests[i];
+    }
+    throw;
   }
-  buffer.resize(chunk_blocks + blocks_to_repeat);
 }
 
 Driver::~Driver() {
@@ -178,12 +189,15 @@ void copy_message(char *message, const char *what) {
   message[MESSAGE_SIZE - 1] = '\0';
 }
 
-// Signals zurngtest_internal_error through the package's R helper. Called
+const char *const INTERNAL_ERROR = "zurngtest_internal_error";
+const char *const PRACTRAND_ERROR = "zurngtest_practrand_error";
+
+// Signals an error of class `cls` through the package's R helper. Called
 // only from frames that hold no C++ objects.
-void signal_internal_error(const char *message) {
+void signal_error(const char *message, const char *cls_name) {
   SEXP ns = PROTECT(R_FindNamespace(PROTECT(Rf_mkString("zurngtest"))));
   SEXP msg = PROTECT(Rf_mkString(message));
-  SEXP cls = PROTECT(Rf_mkString("zurngtest_internal_error"));
+  SEXP cls = PROTECT(Rf_mkString(cls_name));
   SEXP call = PROTECT(Rf_lang3(Rf_install("zurngtest_abort"), msg, cls));
   Rf_eval(call, ns);
   UNPROTECT(5);
@@ -212,6 +226,7 @@ extern "C" {
 SEXP zrt_driver_new(SEXP battery, SEXP folding, SEXP bits, SEXP seed,
                     SEXP max_bytes) {
   char message[MESSAGE_SIZE] = "";
+  const char *cls = INTERNAL_ERROR;
   int battery_index = Rf_asInteger(battery);
   int fold = Rf_asLogical(folding);
   int word_bits = Rf_asInteger(bits);
@@ -222,19 +237,23 @@ SEXP zrt_driver_new(SEXP battery, SEXP folding, SEXP bits, SEXP seed,
                                                   : 1;
   SEXP ptr = PROTECT(R_MakeExternalPtr(NULL, R_NilValue, R_NilValue));
   R_RegisterCFinalizerEx(ptr, finalize_driver, TRUE);
-  // The constructor throws only std::bad_alloc, which no test can provoke
-  // portably; catch (...) here and below is a backstop, since PractRand
-  // throws only std::runtime_error (0001-no-stdio.patch).
+  // The constructor can throw std::bad_alloc, or PractRand's error from a
+  // test's init(); no test can provoke either. catch (...) here and below
+  // is a backstop: PractRand throws only std::runtime_error.
   try {
     R_SetExternalPtrAddr(
         ptr, new Driver(battery_index, fold == 1, word_bits, Uint64(seed_value),
                         chunk_blocks));
+  } catch (const std::runtime_error &e) {
+    // PractRand's issue_error() (0001-no-stdio.patch).
+    copy_message(message, e.what());
+    cls = PRACTRAND_ERROR;
   } catch (const std::exception &e) {
     copy_message(message, e.what());
   } catch (...) {
     copy_message(message, "unknown C++ exception");
   }
-  if (message[0]) signal_internal_error(message);
+  if (message[0]) signal_error(message, cls);
   UNPROTECT(1);
   return ptr;
 }
@@ -247,6 +266,7 @@ SEXP zrt_driver_free(SEXP ptr) {
 
 SEXP zrt_driver_feed(SEXP ptr, SEXP data) {
   char message[MESSAGE_SIZE] = "";
+  const char *cls = INTERNAL_ERROR;
   Driver *driver = get_driver(ptr, message);
   const unsigned char *bytes = NULL;
   std::size_t nbytes = 0;
@@ -271,22 +291,31 @@ SEXP zrt_driver_feed(SEXP ptr, SEXP data) {
   if (!message[0]) {
     try {
       driver->feed(bytes, nbytes / TestBlock::SIZE);
+    } catch (const std::runtime_error &e) {
+      // PractRand's issue_error() (0001-no-stdio.patch).
+      copy_message(message, e.what());
+      cls = PRACTRAND_ERROR;
     } catch (const std::exception &e) {
       copy_message(message, e.what());
     } catch (...) {
       copy_message(message, "unknown C++ exception");
     }
   }
-  if (message[0]) signal_internal_error(message);
+  if (message[0]) signal_error(message, cls);
   return R_NilValue;
 }
 
 SEXP zrt_driver_results(SEXP ptr) {
   char message[MESSAGE_SIZE] = "";
+  const char *cls = INTERNAL_ERROR;
   Driver *driver = get_driver(ptr, message);
   if (driver) {
     try {
       driver->collect();
+    } catch (const std::runtime_error &e) {
+      // PractRand's issue_error() (0001-no-stdio.patch).
+      copy_message(message, e.what());
+      cls = PRACTRAND_ERROR;
     } catch (const std::exception &e) {
       copy_message(message, e.what());
     } catch (...) {
@@ -294,7 +323,7 @@ SEXP zrt_driver_results(SEXP ptr) {
     }
   }
   if (message[0]) {
-    signal_internal_error(message);  // does not return
+    signal_error(message, cls);  // does not return
     return R_NilValue;
   }
 
@@ -326,12 +355,17 @@ SEXP zrt_driver_results(SEXP ptr) {
 // zurngtest_internal_error.
 SEXP zrt_issue_error_for_tests(void) {
   char message[MESSAGE_SIZE] = "";
+  const char *cls = INTERNAL_ERROR;
   try {
     PractRand::issue_error("issue_error() reached from zrt_issue_error_for_tests");
+  } catch (const std::runtime_error &e) {
+    // PractRand's issue_error() (0001-no-stdio.patch).
+    copy_message(message, e.what());
+    cls = PRACTRAND_ERROR;
   } catch (const std::exception &e) {
     copy_message(message, e.what());
   }
-  if (message[0]) signal_internal_error(message);
+  if (message[0]) signal_error(message, cls);
   return R_NilValue;
 }
 
