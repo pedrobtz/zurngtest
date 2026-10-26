@@ -134,7 +134,7 @@ test_that("an error while feeding PractRand ends the run with a warning", {
   local_mocked_bindings(driver_feed = function(driver, data) {
     calls <<- calls + 1
     if (calls == 2) {
-      zurngtest_abort("a stand-in", "zurngtest_internal_error")
+      zurngtest_abort("a stand-in", "zurngtest_practrand_error")
     }
     feed(driver, data)
   })
@@ -148,6 +148,18 @@ test_that("an error while feeding PractRand ends the run with a warning", {
     class = "zurngtest_stopped"
   )
   expect_equal(unique(res$bytes), 2^16)
+  expect_equal(attr(res, "stopped"), "practrand")
+})
+
+test_that("an error that is not PractRand's is an error, not a warning", {
+  feed <- driver_feed
+  local_mocked_bindings(driver_feed = function(driver, data) {
+    zurngtest_abort("a failed allocation", "zurngtest_internal_error")
+  })
+  expect_error(
+    quick_test(repeating(2^16), min_bytes = 2^16, max_bytes = 2^16),
+    class = "zurngtest_internal_error"
+  )
 })
 
 test_that("an interrupt returns the lengths already completed", {
@@ -165,13 +177,50 @@ test_that("an interrupt returns the lengths already completed", {
     },
     bits = 8
   )
-  res <- pract_test(
-    source,
+  expect_warning(
+    res <- pract_test(
+      source,
+      min_bytes = 2^16,
+      max_bytes = 2^20,
+      stop_on_failure = FALSE
+    ),
+    class = "zurngtest_stopped"
+  )
+  expect_equal(unique(res$bytes), c(2^16, 2^17))
+  expect_equal(attr(res, "stopped"), "interrupt")
+})
+
+test_that("a run says why it ended early, and not otherwise", {
+  full <- quick_test(repeating(2^17), min_bytes = 2^16, max_bytes = 2^17)
+  expect_equal(attr(full, "stopped"), NA_character_)
+  short <- quick_test(
+    repeating(3 * 2^16),
+    min_bytes = 2^16,
+    max_bytes = 2^20,
+    stop_on_failure = FALSE
+  )
+  expect_equal(attr(short, "stopped"), "source")
+})
+
+test_that("a source ending on a length reports that length once", {
+  # The source ends at exactly 2^17: the next length has no data of its own,
+  # so 2^17 is not reported again as a partial length.
+  res <- quick_test(
+    repeating(2^17),
     min_bytes = 2^16,
     max_bytes = 2^20,
     stop_on_failure = FALSE
   )
   expect_equal(unique(res$bytes), c(2^16, 2^17))
+  expect_equal(attr(res, "stopped"), "source")
+  # One block more, and the partial length is reported.
+  res <- quick_test(
+    repeating(2^17 + 2^10),
+    min_bytes = 2^16,
+    max_bytes = 2^20,
+    stop_on_failure = FALSE
+  )
+  expect_equal(unique(res$bytes), c(2^16, 2^17, 2^17 + 2^10))
 })
 
 test_that("pract_test() checks its arguments", {
@@ -208,6 +257,14 @@ test_that("pract_test() checks its arguments", {
   expect_error(
     pract_test(source, seed = -1),
     class = "zurngtest_invalid_argument"
+  )
+  expect_error(
+    pract_test(source, seed = 2^53),
+    class = "zurngtest_invalid_argument"
+  )
+  expect_s3_class(
+    quick_test(source, min_bytes = 2^16, max_bytes = 2^16, seed = 2^53 - 1),
+    "zurngtest_result"
   )
 })
 
@@ -262,6 +319,13 @@ test_that("print() reports a passing run that ended short", {
     c(2^20, 2^20, 2^21, 2^21, 2^21, 3 * 2^20),
     c("normal", "normalish", "unusual", "normal", NA, "normal")
   )
+  attr(x, "stopped") <- "source"
+  expect_snapshot(print(x))
+})
+
+test_that("print() says when a run was interrupted", {
+  x <- fixed_result(2^16, "normal")
+  attr(x, "stopped") <- "interrupt"
   expect_snapshot(print(x))
 })
 

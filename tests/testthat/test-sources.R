@@ -48,6 +48,7 @@ test_that("pract_fun() checks its arguments", {
 })
 
 test_that("pract_fun() rejects a wrong type or length from f", {
+  withr::local_seed(1)
   doubles <- pract_fun(function(n) runif(n))$open()
   expect_error(doubles$fill(8), class = "zurngtest_source_error")
   short <- pract_fun(function(n) integer(n - 1))$open()

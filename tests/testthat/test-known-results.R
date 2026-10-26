@@ -16,6 +16,7 @@ test_that("hc256 passes to 256 MiB", {
   res <- known_generator("hc256", min_bytes = 2^20, max_bytes = 2^28)
   expect_true(is.na(attr(res, "failed_at")))
   expect_equal(max(res$bytes), 2^28)
+  expect_equal(attr(res, "stopped"), NA_character_)
 })
 
 test_that("std::mt19937 passes to 1 GiB", {
@@ -23,10 +24,14 @@ test_that("std::mt19937 passes to 1 GiB", {
   skip_unless_long_tests()
   res <- known_generator("mt19937", min_bytes = 2^20, max_bytes = 2^30)
   expect_true(is.na(attr(res, "failed_at")))
+  expect_equal(max(res$bytes), 2^30)
+  expect_equal(attr(res, "stopped"), NA_character_)
 })
 
 test_that("R's Mersenne-Twister passes to 64 MiB through pract_rng()", {
   skip_unless_long_tests()
   res <- pract_test(pract_rng(), min_bytes = 2^20, max_bytes = 2^26)
   expect_true(is.na(attr(res, "failed_at")))
+  expect_equal(max(res$bytes), 2^26)
+  expect_equal(attr(res, "stopped"), NA_character_)
 })

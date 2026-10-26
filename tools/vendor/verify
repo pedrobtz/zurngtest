@@ -8,9 +8,10 @@
 #   tools/vendor/verify --canary   the gate's canary: compare the derived tree
 #                                  with a copy of src/practrand/ that has one
 #                                  file changed, one removed and one added,
-#                                  and require the comparison to report all
-#                                  three. Failing to derive the tree fails
-#                                  the canary too.
+#                                  and run the patch-list, Makevars and
+#                                  version gates on tampered copies; every
+#                                  gate must report its failure. Failing to
+#                                  derive the tree fails the canary too.
 set -eu
 
 CANARY=0
@@ -49,47 +50,80 @@ compare() {
   done < "$WORK/derived"
 }
 
+# check_patches <patch-dir>: the patch series on disk must be exactly what
+# PROVENANCE lists, in order.
+check_patches() {
+  awk '/^  Local patches:/ {on = 1; next} on && /^ +[^ ]+\.patch$/ {print $1; next} on {exit}' \
+    "$PROV" > "$WORK/listed"
+  ls "$1"/*.patch 2>/dev/null | xargs -n1 basename > "$WORK/present" || true
+  cmp -s "$WORK/listed" "$WORK/present" ||
+    echo "FAIL: tools/patches/ does not match the patch list in $PROV" >> "$FAILURES"
+}
+
+# check_makevars <makevars>: it must compile every vendored translation
+# unit, and nothing else from the vendored tree.
+check_makevars() {
+  (cd "$WORK/tree" && find src -name '*.cpp' | sed 's|^|practrand/|; s|\.cpp$|.o|' | sort) > "$WORK/units"
+  grep -o 'practrand/src/[^ \\]*\.o' "$1" | sort > "$WORK/listed-units"
+  comm -23 "$WORK/units" "$WORK/listed-units" |
+    sed 's|^|FAIL: src/Makevars does not build |' >> "$FAILURES"
+  comm -13 "$WORK/units" "$WORK/listed-units" |
+    sed 's|^|FAIL: src/Makevars builds a file that is not vendored: |' >> "$FAILURES"
+}
+
+# check_version <rand.cpp>: zurngtest_info() reports the version PractRand
+# compiles in; it must be the version pinned here.
+check_version() {
+  grep -q "version_str = \"$VERSION\"" "$1" ||
+    echo "FAIL: src/practrand/src/rand.cpp does not report version $VERSION" >> "$FAILURES"
+}
+
+# expect_reported <text>: the canary fails unless a gate reported <text>.
+expect_reported() {
+  if ! grep -q "$1" "$FAILURES"; then
+    cat "$FAILURES" >&2
+    echo "CANARY FAILED: no gate reported: $1" >&2
+    exit 1
+  fi
+}
+
 if [ "$CANARY" -eq 1 ]; then
   cp -R src/practrand "$WORK/local-copy"
   printf '\n' >> "$WORK/local-copy/src/math.cpp"
   rm "$WORK/local-copy/src/sha2.cpp"
   : > "$WORK/local-copy/src/canary.cpp"
   compare "$WORK/local-copy"
-  for want in "differs from upstream plus patches" "missing src/practrand/src/sha2.cpp" \
-    "not derived from upstream: src/practrand/src/canary.cpp"; do
-    if ! grep -q "$want" "$FAILURES"; then
-      cat "$FAILURES" >&2
-      echo "CANARY FAILED: the comparison did not report: $want" >&2
-      exit 1
-    fi
-  done
-  echo "==> canary OK: the comparison reported a changed, a missing and an extra file"
+  expect_reported "differs from upstream plus patches"
+  expect_reported "missing src/practrand/src/sha2.cpp"
+  expect_reported "not derived from upstream: src/practrand/src/canary.cpp"
+
+  # A patch on disk that PROVENANCE does not list.
+  cp -R tools/patches "$WORK/patches-copy"
+  : > "$WORK/patches-copy/9999-canary.patch"
+  check_patches "$WORK/patches-copy"
+  expect_reported "does not match the patch list"
+
+  # A Makevars that drops one vendored unit and builds one that is not.
+  sed 's|practrand/src/sha2\.o|practrand/src/canary.o|' src/Makevars > "$WORK/Makevars-copy"
+  check_makevars "$WORK/Makevars-copy"
+  expect_reported "does not build practrand/src/sha2.o"
+  expect_reported "not vendored: practrand/src/canary.o"
+
+  # A compiled-in version that is not the pinned one.
+  sed "s|version_str = \"$VERSION\"|version_str = \"0.0\"|" \
+    src/practrand/src/rand.cpp > "$WORK/rand-copy.cpp"
+  check_version "$WORK/rand-copy.cpp"
+  expect_reported "does not report version"
+
+  echo "==> canary OK: every gate reported its failure"
   exit 0
 fi
 
-# The patch series on disk must be exactly what PROVENANCE lists, in order.
-awk '/^  Local patches:/ {on = 1; next} on && /^ +[^ ]+\.patch$/ {print $1; next} on {exit}' \
-  "$PROV" > "$WORK/listed"
-ls tools/patches/*.patch 2>/dev/null | xargs -n1 basename > "$WORK/present" || true
-cmp -s "$WORK/listed" "$WORK/present" ||
-  echo "FAIL: tools/patches/ does not match the patch list in $PROV" >> "$FAILURES"
-
+check_patches tools/patches
 compare src/practrand
 count=$(wc -l < "$WORK/derived" | tr -d ' ')
-
-# src/Makevars must compile every vendored translation unit, and nothing else
-# from the vendored tree.
-(cd "$WORK/tree" && find src -name '*.cpp' | sed 's|^|practrand/|; s|\.cpp$|.o|' | sort) > "$WORK/units"
-grep -o 'practrand/src/[^ \\]*\.o' src/Makevars | sort > "$WORK/listed-units"
-comm -23 "$WORK/units" "$WORK/listed-units" |
-  sed 's|^|FAIL: src/Makevars does not build |' >> "$FAILURES"
-comm -13 "$WORK/units" "$WORK/listed-units" |
-  sed 's|^|FAIL: src/Makevars builds a file that is not vendored: |' >> "$FAILURES"
-
-# zurngtest_info() reports the version PractRand compiles in; it must be the
-# version pinned here.
-grep -q "version_str = \"$VERSION\"" src/practrand/src/rand.cpp ||
-  echo "FAIL: src/practrand/src/rand.cpp does not report version $VERSION" >> "$FAILURES"
+check_makevars src/Makevars
+check_version src/practrand/src/rand.cpp
 
 if [ -s "$FAILURES" ]; then
   cat "$FAILURES" >&2

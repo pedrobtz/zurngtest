@@ -8,6 +8,7 @@
 
 #include "PractRand.h"
 #include "PractRand/RNGs/hc256.h"
+#define R_NO_REMAP
 #include "zurngtest.h"
 
 // Each generator lives on the stack of zrt_test_generator(); R may longjmp

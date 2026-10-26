@@ -46,7 +46,10 @@ pract_interleave <- function(...) {
   k <- length(sources)
   description <- paste0(
     "interleaving of ",
-    paste(vapply(sources, function(s) s$description, ""), collapse = "; ")
+    paste(
+      vapply(sources, function(s) s$description, character(1)),
+      collapse = "; "
+    )
   )
   open <- function() {
     readers <- list()

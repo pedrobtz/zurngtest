@@ -35,6 +35,7 @@ fixed_result <- function(bytes, evaluation, failed_at = NA_real_) {
     ),
     class = c("zurngtest_result", "data.frame"),
     failed_at = failed_at,
+    stopped = NA_character_,
     source = "a fixed source",
     elapsed = 0
   )

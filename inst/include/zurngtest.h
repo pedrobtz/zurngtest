@@ -6,7 +6,9 @@
  * from C code that R calls through .Call(), with zurngtest installed. The
  * function is looked up with R_GetCCallable(), so no symbol is linked.
  *
- * Compiles as C99 and as C++.
+ * Compiles as C99 and as C++. The header includes <Rinternals.h>, so a file
+ * that wants R's API without its short names (length, error, ...) defines
+ * R_NO_REMAP before including this header, as before any R header.
  */
 #ifndef ZURNGTEST_H
 #define ZURNGTEST_H
@@ -30,7 +32,11 @@ typedef void (*zurngtest_fill_fn)(void *state, uint32_t *out, size_t n);
  * zurngtest_result data frame as pract_test(). `options` is a named list of
  * further pract_test() arguments (battery, min_bytes, max_bytes,
  * stop_on_failure, folding, seed), or R_NilValue for the defaults. Errors
- * are R errors. */
+ * are R errors.
+ *
+ * The function is looked up once per compilation unit and cached. If
+ * zurngtest is unloaded and loaded again in the same session (for example
+ * by devtools::load_all()), restart R or reload the calling package too. */
 static inline SEXP zurngtest_test_cfun(zurngtest_fill_fn fill, void *state,
                                        SEXP options) {
   static SEXP (*fn)(zurngtest_fill_fn, void *, SEXP) = NULL;

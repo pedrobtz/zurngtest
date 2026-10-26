@@ -30,6 +30,13 @@ The source draws from its own copy of the generator's state, set with
 kind are restored after every draw, so testing does not change the random
 numbers the session draws, and several \code{pract_rng()} sources, for example
 two seeds in \code{\link[=pract_interleave]{pract_interleave()}}, each keep their own stream.
+
+A user-supplied generator (\link{Random.user}) keeps its state in its own
+code. R copies that state into \code{.Random.seed} only when the generator
+provides \code{user_unif_nseed} and \code{user_unif_seedloc}, so only then can the
+source keep a stream of its own. Without them, \code{set.seed()} and the
+draws act on the generator the session uses: testing it changes the
+session's stream, and two such sources share one stream.
 }
 \examples{
 pract_test(pract_rng("Mersenne-Twister"), min_bytes = 2^16, max_bytes = 2^17)

@@ -1,9 +1,10 @@
-// R entry points. R's headers come after the C++ ones, with R_NO_REMAP, so
-// R's macros cannot rename anything in the standard library or PractRand.
+// R entry points. R_NO_REMAP comes first, before zurngtest.h includes R's
+// headers, so R's macros cannot rename anything in the standard library or
+// PractRand.
+#define R_NO_REMAP
 #include "PractRand.h"
 #include "zurngtest.h"
 
-#define R_NO_REMAP
 #include <R.h>
 #include <Rinternals.h>
 #include <R_ext/Rdynload.h>

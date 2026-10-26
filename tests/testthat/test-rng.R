@@ -115,12 +115,11 @@ test_that("pract_rng() reports a kind R cannot set as a source error", {
 })
 
 test_that("pract_rng() describes how each kind's bits are taken", {
-  expect_match(pract_rng()$description, "Mersenne-Twister.*32-bit integers")
-  expect_match(
-    pract_rng("Wichmann-Hill")$description,
-    "32 most significant bits"
-  )
-  expect_match(pract_rng("Knuth-TAOCP")$description, "30-bit")
+  expect_snapshot({
+    for (kind in names(rng_kinds)) {
+      print(pract_rng(kind))
+    }
+  })
 })
 
 test_that("Mersenne-Twister passes a short run", {

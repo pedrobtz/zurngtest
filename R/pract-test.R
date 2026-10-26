@@ -1,10 +1,10 @@
 #' Test a source of random bits with 'PractRand'
 #'
 #' Runs a 'PractRand' battery on the bits from `source`, reporting results at
-#' doubling lengths from `min_bytes` to `max_bytes`, as 'PractRand''s
+#' doubling lengths from `min_bytes` to `max_bytes`, as PractRand's
 #' `RNG_test` does.
 #'
-#' Each test result is evaluated with 'PractRand''s own labels and
+#' Each test result is evaluated with PractRand's own labels and
 #' thresholds, as its `RNG_test` evaluates them; see the Evaluations section.
 #' A source has failed at the first length with any result labelled "FAIL".
 #'
@@ -40,10 +40,11 @@
 #' than `max_bytes`) ends the run: the last rows are at the number of bytes
 #' tested, rounded down to a whole kilobyte. If it ends before `min_bytes`,
 #' that is an error. An interrupt also ends the run, and returns the results
-#' of the lengths completed before it, as does an error raised by 'PractRand'
+#' of the lengths completed before it, as does an error raised by PractRand
 #' itself, which the NS3 tests of the expanded battery can raise on heavily
-#' failing input; that is reported in a warning of class
-#' `zurngtest_stopped`.
+#' failing input; both are reported in a warning of class
+#' `zurngtest_stopped`. Any other error, such as a failed allocation, is an
+#' error. The result's `stopped` attribute says why a run ended early.
 #'
 #' @param source A source of bits, from [pract_raw()], [pract_fun()],
 #'   [pract_rng()] or [pract_interleave()].
@@ -53,16 +54,19 @@
 #'   bytes: powers of two of at least 1024.
 #' @param stop_on_failure If `TRUE`, stop at the first length where the
 #'   source fails.
-#' @param folding If `TRUE`, also run the tests on 'PractRand''s standard
+#' @param folding If `TRUE`, also run the tests on PractRand's standard
 #'   foldings of the data (for example its low bits), by the source's word
 #'   size.
-#' @param seed The seed of the generator 'PractRand' uses inside some tests,
-#'   a whole number from 0 to 2^53. `NULL` uses 0, so runs are reproducible.
+#' @param seed The seed of the generator PractRand uses inside some tests,
+#'   a whole number from 0 to 2^53 - 1. `NULL` uses 0, so runs are
+#'   reproducible.
 #' @return A data frame of class `zurngtest_result`, with one row per test
 #'   result at each length: `bytes` (the length), `test` (the test name),
-#'   `p_value` and `evaluation` ('PractRand''s label). Its attributes are
-#'   `failed_at`, the first length with a failure or `NA`, `source`, a
-#'   description of the source, and `elapsed`, the run time in seconds.
+#'   `p_value` and `evaluation` (PractRand's label). Its attributes are
+#'   `failed_at`, the first length with a failure or `NA`; `stopped`, why
+#'   the run ended before `max_bytes` without a failure (`"source"` when
+#'   the source ended, `"interrupt"` or `"practrand"`) or `NA`; `source`, a
+#'   description of the source; and `elapsed`, the run time in seconds.
 #' @export
 #' @examples
 #' # A repeating pattern fails at once
@@ -70,7 +74,10 @@
 #' pract_test(pattern, min_bytes = 2^16, max_bytes = 2^16)
 #'
 #' # R's own generator, as bytes
-#' bytes <- pract_fun(function(n) as.raw(sample.int(256L, n, TRUE) - 1L), bits = 8)
+#' bytes <- pract_fun(
+#'   function(n) as.raw(sample.int(256L, n, replace = TRUE) - 1L),
+#'   bits = 8
+#' )
 #' pract_test(bytes, min_bytes = 2^16, max_bytes = 2^17)
 pract_test <- function(
   source,
@@ -127,7 +134,7 @@ pract_test <- function(
       seed == floor(seed))
   ) {
     zurngtest_abort(
-      "`seed` must be NULL or a whole number from 0 to 2^53.",
+      "`seed` must be NULL or a whole number from 0 to 2^53 - 1.",
       "zurngtest_invalid_argument"
     )
   }
@@ -152,6 +159,10 @@ pract_test <- function(
   ended <- FALSE
   rows <- list()
   failed_at <- NA_real_
+  stopped <- NA_character_
+  warn_stopped <- function(message) {
+    warning(warningCondition(message, class = "zurngtest_stopped", call = call))
+  }
 
   # An error PractRand raises while testing or reporting (its NS3 tests can,
   # on heavily failing input) ends the run like an interrupt: the lengths
@@ -159,24 +170,24 @@ pract_test <- function(
   halted <- FALSE
   halt <- function(error, bytes) {
     halted <<- TRUE
-    warning(warningCondition(
-      sprintf(
-        "PractRand stopped the run after %s bytes: %s",
-        format(bytes, scientific = FALSE),
-        conditionMessage(error)
-      ),
-      class = "zurngtest_stopped",
-      call = call
+    stopped <<- "practrand"
+    warn_stopped(sprintf(
+      "PractRand stopped the run after %s bytes: %s",
+      format(bytes, scientific = FALSE),
+      conditionMessage(error)
     ))
   }
 
   add_rows <- function(bytes) {
-    res <- tryCatch(driver_results(driver), zurngtest_internal_error = identity)
+    res <- tryCatch(
+      driver_results(driver),
+      zurngtest_practrand_error = identity
+    )
     if (inherits(res, "condition")) {
       halt(res, bytes)
       return(invisible())
     }
-    rows[[length(rows) + 1]] <<- data.frame(
+    rows[[length(rows) + 1L]] <<- data.frame(
       bytes = rep(bytes, length(res$test)),
       test = res$test,
       p_value = res$p_value,
@@ -206,7 +217,7 @@ pract_test <- function(
               driver_feed(driver, data)
               NULL
             },
-            zurngtest_internal_error = identity
+            zurngtest_practrand_error = identity
           )
           if (!is.null(error)) {
             halt(error, fed + got)
@@ -230,6 +241,7 @@ pract_test <- function(
             call = call
           )
         }
+        stopped <- "source"
         if (fed > len / 2) {
           add_rows(fed)
         }
@@ -243,7 +255,13 @@ pract_test <- function(
         break
       }
     },
-    interrupt = function(cnd) NULL
+    interrupt = function(cnd) {
+      stopped <<- "interrupt"
+      warn_stopped(sprintf(
+        "Interrupted after %s bytes; the results are of the lengths completed.",
+        format(fed, scientific = FALSE)
+      ))
+    }
   )
 
   result <- do.call(rbind, c(rows, list(make.row.names = FALSE)))
@@ -260,45 +278,10 @@ pract_test <- function(
     result,
     class = c("zurngtest_result", "data.frame"),
     failed_at = failed_at,
+    stopped = stopped,
     source = source$description,
     elapsed = proc.time()[["elapsed"]] - start
   )
-}
-
-# Bytes in a source's chunk: raw bytes, or 32-bit integer words.
-byte_length <- function(data) {
-  if (is.integer(data)) 4 * length(data) else length(data)
-}
-
-# The leading whole 1024-byte blocks of a chunk; the tail is dropped.
-whole_blocks <- function(data) {
-  keep <- byte_length(data) %/% 1024 * 1024
-  if (is.integer(data)) data[seq_len(keep / 4)] else data[seq_len(keep)]
-}
-
-check_length_arg <- function(x, name) {
-  ok <- is.numeric(x) &&
-    length(x) == 1 &&
-    is.finite(x) &&
-    x >= 1024 &&
-    log2(x) == round(log2(x))
-  if (!ok) {
-    zurngtest_abort(
-      sprintf("`%s` must be a power of two of at least 1024.", name),
-      "zurngtest_invalid_argument",
-      call = sys.call(-1)
-    )
-  }
-}
-
-check_flag <- function(x, name) {
-  if (!(is.logical(x) && length(x) == 1 && !is.na(x))) {
-    zurngtest_abort(
-      sprintf("`%s` must be TRUE or FALSE.", name),
-      "zurngtest_invalid_argument",
-      call = sys.call(-1)
-    )
-  }
 }
 
 #' @export
@@ -344,6 +327,20 @@ print.zurngtest_result <- function(x, ...) {
       cat("  ", no_p, " test result(s) without a p-value\n", sep = "")
     }
   }
+  stopped <- attr(x, "stopped")
+  if (!is.null(stopped) && !is.na(stopped)) {
+    cat(
+      "Ended early: ",
+      switch(
+        stopped,
+        source = "the source ran out",
+        interrupt = "interrupted",
+        practrand = "PractRand raised an error"
+      ),
+      "\n",
+      sep = ""
+    )
+  }
   failed_at <- attr(x, "failed_at")
   cat(
     if (is.na(failed_at)) {
@@ -373,5 +370,41 @@ format_length <- function(bytes) {
     )
   } else {
     sprintf("%.3f %ss (2^%.3f bytes)", amount, units[[unit]], power)
+  }
+}
+
+# Bytes in a source's chunk: raw bytes, or 32-bit integer words.
+byte_length <- function(data) {
+  if (is.integer(data)) 4 * length(data) else length(data)
+}
+
+# The leading whole 1024-byte blocks of a chunk; the tail is dropped.
+whole_blocks <- function(data) {
+  keep <- byte_length(data) %/% 1024 * 1024
+  if (is.integer(data)) data[seq_len(keep / 4)] else data[seq_len(keep)]
+}
+
+check_length_arg <- function(x, name) {
+  ok <- is.numeric(x) &&
+    length(x) == 1 &&
+    is.finite(x) &&
+    x >= 1024 &&
+    log2(x) == round(log2(x))
+  if (!ok) {
+    zurngtest_abort(
+      sprintf("`%s` must be a power of two of at least 1024.", name),
+      "zurngtest_invalid_argument",
+      call = sys.call(-1)
+    )
+  }
+}
+
+check_flag <- function(x, name) {
+  if (!(is.logical(x) && length(x) == 1 && !is.na(x))) {
+    zurngtest_abort(
+      sprintf("`%s` must be TRUE or FALSE.", name),
+      "zurngtest_invalid_argument",
+      call = sys.call(-1)
+    )
   }
 }

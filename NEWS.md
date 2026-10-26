@@ -5,7 +5,9 @@
   Doty-Humphrey, on a source of bits at doubling lengths. It returns one row
   per test result and length, with PractRand's own evaluation, and the first
   length at which the source failed. With the core battery its results equal
-  those of PractRand's `RNG_test` on the same bytes.
+  those of PractRand's `RNG_test` on the same bytes. A run cut short by the
+  source ending, an interrupt or an error PractRand raises returns the
+  lengths completed, and its `stopped` attribute says why.
 * Sources of bits: `pract_raw()` for raw vectors and connections,
   `pract_fun()` for R functions, `pract_rng()` for R's own generators, tested
   on the integers behind `runif()` wherever they can be recovered and without

@@ -25,5 +25,17 @@
         1 test result(s) without a p-value
       length= 3.000 megabytes (2^21.585 bytes)
         no anomalies in 1 test result(s)
+      Ended early: the source ran out
+      No failure, time= 0.0 seconds
+
+# print() says when a run was interrupted
+
+    Code
+      print(x)
+    Output
+      PractRand 0.96 test of a fixed source
+      length= 64 kilobytes (2^16 bytes)
+        no anomalies in 1 test result(s)
+      Ended early: interrupted
       No failure, time= 0.0 seconds
 

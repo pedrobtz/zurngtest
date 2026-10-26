@@ -27,27 +27,30 @@ bytes: powers of two of at least 1024.}
 \item{stop_on_failure}{If \code{TRUE}, stop at the first length where the
 source fails.}
 
-\item{folding}{If \code{TRUE}, also run the tests on 'PractRand''s standard
+\item{folding}{If \code{TRUE}, also run the tests on PractRand's standard
 foldings of the data (for example its low bits), by the source's word
 size.}
 
-\item{seed}{The seed of the generator 'PractRand' uses inside some tests,
-a whole number from 0 to 2^53. \code{NULL} uses 0, so runs are reproducible.}
+\item{seed}{The seed of the generator PractRand uses inside some tests,
+a whole number from 0 to 2^53 - 1. \code{NULL} uses 0, so runs are
+reproducible.}
 }
 \value{
 A data frame of class \code{zurngtest_result}, with one row per test
 result at each length: \code{bytes} (the length), \code{test} (the test name),
-\code{p_value} and \code{evaluation} ('PractRand''s label). Its attributes are
-\code{failed_at}, the first length with a failure or \code{NA}, \code{source}, a
-description of the source, and \code{elapsed}, the run time in seconds.
+\code{p_value} and \code{evaluation} (PractRand's label). Its attributes are
+\code{failed_at}, the first length with a failure or \code{NA}; \code{stopped}, why
+the run ended before \code{max_bytes} without a failure (\code{"source"} when
+the source ended, \code{"interrupt"} or \code{"practrand"}) or \code{NA}; \code{source}, a
+description of the source; and \code{elapsed}, the run time in seconds.
 }
 \description{
 Runs a 'PractRand' battery on the bits from \code{source}, reporting results at
-doubling lengths from \code{min_bytes} to \code{max_bytes}, as 'PractRand''s
+doubling lengths from \code{min_bytes} to \code{max_bytes}, as PractRand's
 \code{RNG_test} does.
 }
 \details{
-Each test result is evaluated with 'PractRand''s own labels and
+Each test result is evaluated with PractRand's own labels and
 thresholds, as its \code{RNG_test} evaluates them; see the Evaluations section.
 A source has failed at the first length with any result labelled "FAIL".
 }
@@ -84,10 +87,11 @@ A source that ends early (a raw vector or connection with fewer bytes
 than \code{max_bytes}) ends the run: the last rows are at the number of bytes
 tested, rounded down to a whole kilobyte. If it ends before \code{min_bytes},
 that is an error. An interrupt also ends the run, and returns the results
-of the lengths completed before it, as does an error raised by 'PractRand'
+of the lengths completed before it, as does an error raised by PractRand
 itself, which the NS3 tests of the expanded battery can raise on heavily
-failing input; that is reported in a warning of class
-\code{zurngtest_stopped}.
+failing input; both are reported in a warning of class
+\code{zurngtest_stopped}. Any other error, such as a failed allocation, is an
+error. The result's \code{stopped} attribute says why a run ended early.
 }
 
 \examples{
@@ -96,6 +100,9 @@ pattern <- pract_raw(rep(as.raw(0:255), 2^8))
 pract_test(pattern, min_bytes = 2^16, max_bytes = 2^16)
 
 # R's own generator, as bytes
-bytes <- pract_fun(function(n) as.raw(sample.int(256L, n, TRUE) - 1L), bits = 8)
+bytes <- pract_fun(
+  function(n) as.raw(sample.int(256L, n, replace = TRUE) - 1L),
+  bits = 8
+)
 pract_test(bytes, min_bytes = 2^16, max_bytes = 2^17)
 }

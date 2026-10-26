@@ -38,6 +38,9 @@ test_that("pract_interleave() needs sources of one word size", {
     pract_interleave(pract_raw(raw(4)), pract_fun(function(n) integer(n))),
     class = "zurngtest_invalid_argument"
   )
+})
+
+test_that("pract_interleave() needs two or more sources", {
   expect_error(
     pract_interleave(pract_raw(raw(4))),
     class = "zurngtest_invalid_argument"
@@ -50,7 +53,7 @@ test_that("pract_interleave() needs sources of one word size", {
 
 test_that("two seeds of one generator interleave into a testable stream", {
   source <- pract_interleave(pract_rng(seed = 1), pract_rng(seed = 2))
-  expect_match(source$description, "interleaving")
+  expect_snapshot(print(source))
   res <- pract_test(source, min_bytes = 2^16, max_bytes = 2^16, folding = FALSE)
   expect_true(is.na(attr(res, "failed_at")))
 })
