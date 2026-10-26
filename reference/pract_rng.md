@@ -41,6 +41,15 @@ example two seeds in
 [`pract_interleave()`](https://pedrobtz.github.io/zurngtest/reference/pract_interleave.md),
 each keep their own stream.
 
+A user-supplied generator
+([Random.user](https://rdrr.io/r/base/Random-user.html)) keeps its state
+in its own code. R copies that state into `.Random.seed` only when the
+generator provides `user_unif_nseed` and `user_unif_seedloc`, so only
+then can the source keep a stream of its own. Without them,
+[`set.seed()`](https://rdrr.io/r/base/Random.html) and the draws act on
+the generator the session uses: testing it changes the session's stream,
+and two such sources share one stream.
+
 ## See also
 
 Other sources:
@@ -56,5 +65,5 @@ pract_test(pract_rng("Mersenne-Twister"), min_bytes = 2^16, max_bytes = 2^17)
 #>   no anomalies in 47 test result(s)
 #> length= 128 kilobytes (2^17 bytes)
 #>   no anomalies in 56 test result(s)
-#> No failure, time= 0.5 seconds
+#> No failure, time= 0.3 seconds
 ```

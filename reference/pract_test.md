@@ -1,7 +1,7 @@
 # Test a source of random bits with 'PractRand'
 
 Runs a 'PractRand' battery on the bits from `source`, reporting results
-at doubling lengths from `min_bytes` to `max_bytes`, as 'PractRand”s
+at doubling lengths from `min_bytes` to `max_bytes`, as PractRand's
 `RNG_test` does.
 
 ## Usage
@@ -45,25 +45,27 @@ pract_test(
 
 - folding:
 
-  If `TRUE`, also run the tests on 'PractRand”s standard foldings of the
+  If `TRUE`, also run the tests on PractRand's standard foldings of the
   data (for example its low bits), by the source's word size.
 
 - seed:
 
-  The seed of the generator 'PractRand' uses inside some tests, a whole
-  number from 0 to 2^53. `NULL` uses 0, so runs are reproducible.
+  The seed of the generator PractRand uses inside some tests, a whole
+  number from 0 to 2^53 - 1. `NULL` uses 0, so runs are reproducible.
 
 ## Value
 
 A data frame of class `zurngtest_result`, with one row per test result
 at each length: `bytes` (the length), `test` (the test name), `p_value`
-and `evaluation` ('PractRand”s label). Its attributes are `failed_at`,
-the first length with a failure or `NA`, `source`, a description of the
-source, and `elapsed`, the run time in seconds.
+and `evaluation` (PractRand's label). Its attributes are `failed_at`,
+the first length with a failure or `NA`; `stopped`, why the run ended
+before `max_bytes` without a failure (`"source"` when the source ended,
+`"interrupt"` or `"practrand"`) or `NA`; `source`, a description of the
+source; and `elapsed`, the run time in seconds.
 
 ## Details
 
-Each test result is evaluated with 'PractRand”s own labels and
+Each test result is evaluated with PractRand's own labels and
 thresholds, as its `RNG_test` evaluates them; see the Evaluations
 section. A source has failed at the first length with any result
 labelled "FAIL".
@@ -103,9 +105,10 @@ than `max_bytes`) ends the run: the last rows are at the number of bytes
 tested, rounded down to a whole kilobyte. If it ends before `min_bytes`,
 that is an error. An interrupt also ends the run, and returns the
 results of the lengths completed before it, as does an error raised by
-'PractRand' itself, which the NS3 tests of the expanded battery can
-raise on heavily failing input; that is reported in a warning of class
-`zurngtest_stopped`.
+PractRand itself, which the NS3 tests of the expanded battery can raise
+on heavily failing input; both are reported in a warning of class
+`zurngtest_stopped`. Any other error, such as a failed allocation, is an
+error. The result's `stopped` attribute says why a run ended early.
 
 ## Examples
 
@@ -162,15 +165,18 @@ pract_test(pattern, min_bytes = 2^16, max_bytes = 2^16)
 #>   [Low1/32]mod3n(5):(0,9-6)          0.00e+00     FAIL !!!!!!!
 #>   [Low1/32]mod3n(5):(1,9-6)         8.57e-217     FAIL !!!!!!
 #>   [Low1/32]mod3n(5):(2,9-6)         3.13e-106     FAIL !!!!!
-#> Failed at 64 kilobytes (2^16 bytes), time= 0.3 seconds
+#> Failed at 64 kilobytes (2^16 bytes), time= 0.2 seconds
 
 # R's own generator, as bytes
-bytes <- pract_fun(function(n) as.raw(sample.int(256L, n, TRUE) - 1L), bits = 8)
+bytes <- pract_fun(
+  function(n) as.raw(sample.int(256L, n, replace = TRUE) - 1L),
+  bits = 8
+)
 pract_test(bytes, min_bytes = 2^16, max_bytes = 2^17)
-#> PractRand 0.96 test of function function(n) as.raw(sample.int(256L, n, TRUE) - 1L), 8-bit words
+#> PractRand 0.96 test of function function(n) as.raw(sample.int(256L, n, replace = TRUE) - 1L), 8-bit words
 #> length= 64 kilobytes (2^16 bytes)
 #>   no anomalies in 36 test result(s)
 #> length= 128 kilobytes (2^17 bytes)
 #>   no anomalies in 42 test result(s)
-#> No failure, time= 0.3 seconds
+#> No failure, time= 0.2 seconds
 ```

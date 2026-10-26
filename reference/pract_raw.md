@@ -33,9 +33,9 @@ pract_fun(f, bits = 32)
 
 - bits:
 
-  The size in bits of the words `f` returns: 8, 16, 32 or 64.
-  'PractRand' folds its tests to the word size; `pract_raw()` sources
-  have no word size, as with 'PractRand”s `RNG_test stdin`.
+  The size in bits of the words `f` returns: 8, 16, 32 or 64. PractRand
+  folds its tests to the word size; `pract_raw()` sources have no word
+  size, as with PractRand's `RNG_test stdin`.
 
 ## Value
 
@@ -66,6 +66,9 @@ pract_raw(as.raw(sample(0:255, 1024, replace = TRUE)))
 #> <zurngtest_source> raw vector of 1024 bytes
 
 # R's own generator, as bytes
-pract_fun(function(n) as.raw(sample.int(256L, n, TRUE) - 1L), bits = 8)
-#> <zurngtest_source> function function(n) as.raw(sample.int(256L, n, TRUE) - 1L), 8-bit words
+pract_fun(
+  function(n) as.raw(sample.int(256L, n, replace = TRUE) - 1L),
+  bits = 8
+)
+#> <zurngtest_source> function function(n) as.raw(sample.int(256L, n, replace = TRUE) - 1L), 8-bit words
 ```

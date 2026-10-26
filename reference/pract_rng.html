@@ -85,6 +85,12 @@ of each number.</p>
 kind are restored after every draw, so testing does not change the random
 numbers the session draws, and several <code>pract_rng()</code> sources, for example
 two seeds in <code><a href="pract_interleave.html">pract_interleave()</a></code>, each keep their own stream.</p>
+<p>A user-supplied generator (<a href="https://rdrr.io/r/base/Random-user.html" class="external-link">Random.user</a>) keeps its state in its own
+code. R copies that state into <code>.Random.seed</code> only when the generator
+provides <code>user_unif_nseed</code> and <code>user_unif_seedloc</code>, so only then can the
+source keep a stream of its own. Without them, <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> and the
+draws act on the generator the session uses: testing it changes the
+session's stream, and two such sources share one stream.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -101,7 +107,7 @@ two seeds in <code><a href="pract_interleave.html">pract_interleave()</a></code>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   no anomalies in 47 test result(s)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> length= 128 kilobytes (2^17 bytes)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   no anomalies in 56 test result(s)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> No failure, time= 0.5 seconds</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> No failure, time= 0.3 seconds</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
