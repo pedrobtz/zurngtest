@@ -38,7 +38,7 @@ test_cfun <- function(ptr, options) {
         }
         out
       },
-      close = function() invisible()
+      close = close_nothing
     )
   }
   source <- new_source(

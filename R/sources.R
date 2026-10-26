@@ -19,8 +19,8 @@
 #'   of `n * bits / 8` bytes for any `bits`. Integers are taken as their
 #'   32-bit patterns, so `NA` is the word `0x80000000`.
 #' @param bits The size in bits of the words `f` returns: 8, 16, 32 or 64.
-#'   'PractRand' folds its tests to the word size; `pract_raw()` sources have
-#'   no word size, as with 'PractRand''s `RNG_test stdin`.
+#'   PractRand folds its tests to the word size; `pract_raw()` sources have
+#'   no word size, as with PractRand's `RNG_test stdin`.
 #' @return An object of class `zurngtest_source`.
 #' @family sources
 #' @export
@@ -28,7 +28,10 @@
 #' pract_raw(as.raw(sample(0:255, 1024, replace = TRUE)))
 #'
 #' # R's own generator, as bytes
-#' pract_fun(function(n) as.raw(sample.int(256L, n, TRUE) - 1L), bits = 8)
+#' pract_fun(
+#'   function(n) as.raw(sample.int(256L, n, replace = TRUE) - 1L),
+#'   bits = 8
+#' )
 pract_raw <- function(x) {
   if (is.raw(x)) {
     description <- sprintf("raw vector of %s bytes", format(length(x)))
@@ -41,7 +44,7 @@ pract_raw <- function(x) {
           pos <<- pos + take
           out
         },
-        close = function() invisible()
+        close = close_nothing
       )
     }
   } else if (inherits(x, "connection")) {
@@ -95,9 +98,9 @@ pract_fun <- function(f, bits = 32) {
         n <- nbytes %/% word_bytes
         words <- f(n)
         if (is.integer(words) && bits == 32L) {
-          check_length(words, n)
+          check_fill_length(words, n)
         } else if (is.raw(words)) {
-          check_length(words, nbytes)
+          check_fill_length(words, nbytes)
         } else {
           zurngtest_abort(
             sprintf(
@@ -110,13 +113,20 @@ pract_fun <- function(f, bits = 32) {
         }
         words
       },
-      close = function() invisible()
+      close = close_nothing
     )
   }
   new_source(open, bits = bits, description = description)
 }
 
-check_length <- function(words, expected) {
+#' @export
+print.zurngtest_source <- function(x, ...) {
+  cat("<zurngtest_source> ", x$description, "\n", sep = "")
+  invisible(x)
+}
+
+# A source error unless f() returned the `expected` number of elements.
+check_fill_length <- function(words, expected) {
   if (length(words) != expected) {
     zurngtest_abort(
       sprintf(
@@ -138,8 +148,5 @@ new_source <- function(open, bits, description) {
   )
 }
 
-#' @export
-print.zurngtest_source <- function(x, ...) {
-  cat("<zurngtest_source> ", x$description, "\n", sep = "")
-  invisible(x)
-}
+# The close() of a reader with nothing to release.
+close_nothing <- function() invisible()

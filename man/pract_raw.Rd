@@ -18,8 +18,8 @@ of \code{n * bits / 8} bytes for any \code{bits}. Integers are taken as their
 32-bit patterns, so \code{NA} is the word \code{0x80000000}.}
 
 \item{bits}{The size in bits of the words \code{f} returns: 8, 16, 32 or 64.
-'PractRand' folds its tests to the word size; \code{pract_raw()} sources have
-no word size, as with 'PractRand''s \verb{RNG_test stdin}.}
+PractRand folds its tests to the word size; \code{pract_raw()} sources have
+no word size, as with PractRand's \verb{RNG_test stdin}.}
 }
 \value{
 An object of class \code{zurngtest_source}.
@@ -43,7 +43,10 @@ where it is and left open.
 pract_raw(as.raw(sample(0:255, 1024, replace = TRUE)))
 
 # R's own generator, as bytes
-pract_fun(function(n) as.raw(sample.int(256L, n, TRUE) - 1L), bits = 8)
+pract_fun(
+  function(n) as.raw(sample.int(256L, n, replace = TRUE) - 1L),
+  bits = 8
+)
 }
 \seealso{
 Other sources:

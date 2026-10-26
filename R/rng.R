@@ -62,6 +62,13 @@ rng_kinds <- list(
 #' numbers the session draws, and several `pract_rng()` sources, for example
 #' two seeds in [pract_interleave()], each keep their own stream.
 #'
+#' A user-supplied generator ([Random.user]) keeps its state in its own
+#' code. R copies that state into `.Random.seed` only when the generator
+#' provides `user_unif_nseed` and `user_unif_seedloc`, so only then can the
+#' source keep a stream of its own. Without them, `set.seed()` and the
+#' draws act on the generator the session uses: testing it changes the
+#' session's stream, and two such sources share one stream.
+#'
 #' @param kind The generator, as named by [RNGkind()].
 #' @param seed The seed passed to [set.seed()]: a whole number of at most
 #'   `.Machine$integer.max` in absolute value.
@@ -122,9 +129,13 @@ pract_rng <- function(kind = "Mersenne-Twister", seed = 1) {
     } else {
       packed_fill(function(n) as.integer(round(draw(n) * spec$scale)))
     }
-    list(fill = fill, close = function() invisible())
+    list(fill = fill, close = close_nothing)
   }
-  new_source(open, bits = if (spec$width == 32L) 32L else 0L, description)
+  new_source(
+    open,
+    bits = if (spec$width == 32L) 32L else 0L,
+    description = description
+  )
 }
 
 # Sets the generator and seed, returning a function that puts back the
@@ -207,29 +218,29 @@ packed_fill <- function(draw) {
 
 pack30 <- function(v) {
   m <- matrix(v, nrow = 4L)
-  a <- m[1L, ]
-  b <- m[2L, ]
-  c <- m[3L, ]
-  d <- m[4L, ]
+  w1 <- m[1L, ]
+  w2 <- m[2L, ]
+  w3 <- m[3L, ]
+  w4 <- m[4L, ]
   shr <- bitwShiftR
   and <- bitwAnd
   shl <- bitwShiftL
   bytes <- rbind(
-    shr(a, 22L),
-    and(shr(a, 14L), 255L),
-    and(shr(a, 6L), 255L),
-    bitwOr(shl(and(a, 63L), 2L), shr(b, 28L)),
-    and(shr(b, 20L), 255L),
-    and(shr(b, 12L), 255L),
-    and(shr(b, 4L), 255L),
-    bitwOr(shl(and(b, 15L), 4L), shr(c, 26L)),
-    and(shr(c, 18L), 255L),
-    and(shr(c, 10L), 255L),
-    and(shr(c, 2L), 255L),
-    bitwOr(shl(and(c, 3L), 6L), shr(d, 24L)),
-    and(shr(d, 16L), 255L),
-    and(shr(d, 8L), 255L),
-    and(d, 255L)
+    shr(w1, 22L),
+    and(shr(w1, 14L), 255L),
+    and(shr(w1, 6L), 255L),
+    bitwOr(shl(and(w1, 63L), 2L), shr(w2, 28L)),
+    and(shr(w2, 20L), 255L),
+    and(shr(w2, 12L), 255L),
+    and(shr(w2, 4L), 255L),
+    bitwOr(shl(and(w2, 15L), 4L), shr(w3, 26L)),
+    and(shr(w3, 18L), 255L),
+    and(shr(w3, 10L), 255L),
+    and(shr(w3, 2L), 255L),
+    bitwOr(shl(and(w3, 3L), 6L), shr(w4, 24L)),
+    and(shr(w4, 16L), 255L),
+    and(shr(w4, 8L), 255L),
+    and(w4, 255L)
   )
   as.raw(bytes)
 }
