@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#define R_NO_REMAP
 #include "zurngtest.h"
 
 namespace {
@@ -17,8 +18,6 @@ struct Generator {
   void *state;
 };
 
-// zurngtest.h includes R's headers without R_NO_REMAP, so no name here may
-// be one R remaps (eval, length, error, ...).
 struct Call {
   SEXP call;
   SEXP env;

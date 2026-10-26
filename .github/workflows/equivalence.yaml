@@ -46,4 +46,12 @@ jobs:
       - name: Known results, long runs included
         env:
           ZURNGTEST_LONG_TESTS: "true"
-        run: Rscript -e 'testthat::test_local(filter = "known-results", stop_on_failure = TRUE)'
+        # A skip here means the long runs did not run: fail on any.
+        run: |
+          Rscript -e '
+            res <- as.data.frame(testthat::test_local(
+              filter = "known-results",
+              stop_on_failure = TRUE
+            ))
+            if (any(res$skipped)) stop("known-result tests skipped: ", sum(res$skipped))
+          '

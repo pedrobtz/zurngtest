@@ -13,7 +13,6 @@ PKG_CXXFLAGS = $(CXX_VISIBILITY)
 # The 21 translation units of the vendored library; see
 # practrand/PROVENANCE for what is left out and why.
 PRACTRAND_OBJECTS = \
-	callable.o \
 	practrand/src/math.o \
 	practrand/src/non_uniform.o \
 	practrand/src/platform_specifics.o \
@@ -37,6 +36,7 @@ PRACTRAND_OBJECTS = \
 	practrand/src/xbg_helpers.o
 
 OBJECTS = \
+	callable.o \
 	driver.o \
 	init.o \
 	test-generators.o \
